@@ -32,7 +32,7 @@ extern void ctx_trampoline();
 /// @param stack_size: The size (in bytes) of the usable region of the stack
 /// @param entry: The pointer to the entry function
 /// @param arg: The pointer to the argument of the entry function
-void ctx_make(context *ctx, void *stack_base, size_t stack_size, entry_function entry, void *arg) {
+void ctx_make(gc_context *ctx, void *stack_base, size_t stack_size, entry_function entry, void *arg) {
     // Find the top of the stack by adding the size to the base, then align it to be 16-byte aligned
     uintptr_t top = (uintptr_t) stack_base + stack_size;
     top = top & ~(uintptr_t) 15;

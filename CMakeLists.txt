@@ -13,4 +13,8 @@ add_library(GoConC STATIC
         src/context.h
         src/arch/ctx_make_x86_64_sysv.c
         src/arch/ctx_make_aarch64.c
-        src/arch/ctx_make_x86_64_win.c)
+        src/arch/ctx_make_x86_64_win.c
+        src/scheduler.c
+        src/scheduler_p.h
+        src/scheduler.h
+        src/goroutine.h)

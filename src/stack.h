@@ -20,7 +20,13 @@
 
 #ifndef GOCONC_STACK_H
 #define GOCONC_STACK_H
+#include <stddef.h>
 
-
+typedef struct {
+    void *alloc_base;  // Start of the whole allocation of the stack (including the guard pages)
+    size_t alloc_size; // The size of the whole allocation
+    void *stack_base;  // The lowest address of the usable stack area, above the guard pages
+    size_t stack_size; // The size of the usable stack area
+} stack;
 
 #endif //GOCONC_STACK_H
