@@ -9,4 +9,8 @@ set(CMAKE_C_STANDARD 23)
 
 add_library(GoConC STATIC
         src/stack.c
-        src/stack.h)
+        src/stack.h
+        src/context.h
+        src/arch/ctx_make_x86_64_sysv.c
+        src/arch/ctx_make_aarch64.c
+        src/arch/ctx_make_x86_64_win.c)
