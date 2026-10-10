@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.3)
+cmake_minimum_required(VERSION 3.21)
 project(GoConC VERSION 0.0.1 LANGUAGES C)
 
 # Options
@@ -7,14 +7,30 @@ option(GOCONC_SANITIZE "Build with ASan/UBSan (not TSan)" OFF)
 
 set(CMAKE_C_STANDARD 23)
 
+# Pick platform sources
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _proc)
+if(_proc MATCHES "^(x86_64|amd64)$" AND NOT WIN32)
+    enable_language(ASM)
+    set(GOCONC_ARCH_SRC
+            src/arch/ctx_x86_64_sysv.S
+            src/arch/ctx_make_x86_64_sysv.c)
+elseif(_proc MATCHES "^(aarch64|arm64)$")
+    message(FATAL_ERROR "AArch64 not implemented yet")
+else()
+    message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}/${_proc}")
+endif()
+
 add_library(GoConC STATIC
         src/stack.c
-        src/stack.h
-        src/context.h
-        src/arch/ctx_make_x86_64_sysv.c
-        src/arch/ctx_make_aarch64.c
-        src/arch/ctx_make_x86_64_win.c
         src/scheduler.c
-        src/scheduler_p.h
-        src/scheduler.h
-        src/goroutine.h)
+        ${GOCONC_ARCH_SRC})
+add_library(GoConC::GoConC ALIAS GoConC)
+
+target_include_directories(GoConC
+        PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        PRIVATE src)
+
+if(GOCONC_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

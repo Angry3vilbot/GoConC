@@ -22,6 +22,7 @@
 #define GOCONC_CONTEXT_H
 
 #include <stdint.h>
+#include <stddef.h>
 // Definition of the entry function pointer. This is the function that is called upon the goroutine's first
 // time being switched in, i.e. this is the function that you pass into go(void (*fn)(void *), *void arg)
 typedef void (*entry_function)(void *);
