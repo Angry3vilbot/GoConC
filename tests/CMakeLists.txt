@@ -1,11 +1,23 @@
 add_executable(test_context test_context.c)
 add_executable(test_context_registers
         test_context_registers/test_context_registers.c test_context_registers/check_registers.S)
+add_executable(test_stack test_stack.c)
+add_executable(test_stack_edge_cases test_stack_edge_cases.c)
+add_executable(test_stack_loop test_stack_loop.c)
 
 target_include_directories(test_context PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(test_context PRIVATE GoConC::GoConC)
 target_include_directories(test_context_registers PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(test_context_registers PRIVATE GoConC::GoConC)
+target_include_directories(test_stack PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(test_stack PRIVATE GoConC::GoConC)
+target_include_directories(test_stack_edge_cases PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(test_stack_edge_cases PRIVATE GoConC::GoConC)
+target_include_directories(test_stack_loop PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(test_stack_loop PRIVATE GoConC::GoConC)
 
 add_test(NAME context COMMAND test_context)
 add_test(NAME context_registers COMMAND test_context_registers)
+add_test(NAME stack COMMAND test_stack)
+add_test(NAME stack_edge_cases COMMAND test_stack_edge_cases)
+add_test(NAME stack_loop COMMAND test_stack_loop)

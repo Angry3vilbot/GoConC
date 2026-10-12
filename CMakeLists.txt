@@ -20,8 +20,13 @@ else()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}/${_proc}")
 endif()
 
+if(GOCONC_SANITIZE)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined)
+endif()
+
 add_library(GoConC STATIC
-        src/stack.c
+        src/stack_posix.c
         src/scheduler.c
         ${GOCONC_ARCH_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
@@ -29,6 +34,7 @@ add_library(GoConC::GoConC ALIAS GoConC)
 target_include_directories(GoConC
         PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         PRIVATE src)
+target_compile_definitions(GoConC PRIVATE _DEFAULT_SOURCE)
 
 if(GOCONC_BUILD_TESTS)
     enable_testing()

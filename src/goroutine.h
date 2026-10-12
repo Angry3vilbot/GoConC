@@ -34,7 +34,7 @@ typedef enum {
 typedef struct gc_goroutine {
     gc_context ctx;
     gc_state status;
-    stack stk;
+    gc_stack stk;
     entry_function func;
     void *arg;
     struct gc_goroutine *next; // Pointer to the next goroutine in whatever queue this goroutine is in

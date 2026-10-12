@@ -27,6 +27,9 @@ typedef struct {
     size_t alloc_size; // The size of the whole allocation
     void *stack_base;  // The lowest address of the usable stack area, above the guard pages
     size_t stack_size; // The size of the usable stack area
-} stack;
+} gc_stack;
+
+int gc_stack_allocate(gc_stack *stack, size_t usable_size);
+void gc_stack_free(gc_stack *stack);
 
 #endif //GOCONC_STACK_H
