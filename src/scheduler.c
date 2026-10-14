@@ -22,7 +22,9 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
+#include "sanitizer_p.h"
 #include "scheduler_p.h"
 
 // Static, Single-Threaded Scheduler
@@ -32,13 +34,80 @@ gc_scheduler* gc_sched_get() {
     return &scheduler;
 }
 
-/// Starts a new goroutine
+void run() {
+    gc_scheduler* current = gc_sched_get();
+    // Check that a goroutine hasn't called run() inside itself
+    assert(current->current == NULL);
+    // Scheduler loop
+    while (true) {
+        // Check if the queue has any goroutines
+        if (current->head != NULL) {
+            // Dequeue a goroutine from the queue
+            gc_goroutine* goroutine = current->head;
+            current->head = goroutine->next;
+            goroutine->next = nullptr;
+            // If the new head is null, set tail to null also
+            if (current->head == NULL) {
+                current->tail = nullptr;
+            }
+            // Set the goroutine as running
+            goroutine->status = GC_STATE_RUNNING;
+            current->current = goroutine;
+            // Switch the context to the goroutine
+            gc_switch(&current->context, &goroutine->ctx,
+                &current->asan_fake_stack, goroutine->stk.stack_base, goroutine->stk.stack_size);
+            // If we return here, set current goroutine back to null
+            current->current = nullptr;
+            // Check if the goroutine is dead or has yielded.
+            if (goroutine->status == GC_STATE_DEAD) {
+                // Reap it by freeing it and decrementing the count
+                gc_stack_free(&goroutine->stk);
+                free(goroutine);
+                current->count--;
+            } else if (goroutine->status == GC_STATE_RUNNABLE) {
+                // Place the goroutine back into the queue
+                if (current->tail == NULL) {
+                    current->head = goroutine;
+                    current->tail = goroutine;
+                }
+                else {
+                    current->tail->next = goroutine;
+                    goroutine->prev = current->tail;
+                    current->tail = goroutine;
+                }
+            }
+        }
+        else {
+            if (current->count == 0) {
+                // All goroutines exited
+                return;
+            }
+            // All goroutines are asleep, deadlock
+            fprintf(stderr, "GoConC Fatal Error: all goroutines are asleep - deadlock!\n");
+            // For now, abort, later on sleep until the next even and actually check for a deadlock
+            abort();
+        }
+    }
+}
+
+/// Starts a new goroutine with <code>GC_DEFAULT_STACK_SIZE</code> stack size
 /// @param function the function that runs inside the goroutine
 /// @param arg the argument for said function
 /// @return GC_SUCCESS on success
 /// GC_GOROUTINE_ALLOC_ERROR if the goroutine could not be allocated
 /// GC_STACK_ALLOC_ERROR if the stack could not be allocated
 int go(entry_function function, void *arg) {
+    return go_sized(function, arg, GC_DEFAULT_STACK_SIZE);
+}
+
+/// Starts a new goroutine
+/// @param function the function that runs inside the goroutine
+/// @param arg the argument for said function
+/// @param size the stack size to allocate
+/// @return GC_SUCCESS on success
+/// GC_GOROUTINE_ALLOC_ERROR if the goroutine could not be allocated
+/// GC_STACK_ALLOC_ERROR if the stack could not be allocated
+int go_sized(entry_function function, void *arg, size_t size) {
     gc_scheduler* current = gc_sched_get();
     // Try to allocate a goroutine
     gc_goroutine* goroutine = calloc(1, sizeof(gc_goroutine));
@@ -46,8 +115,7 @@ int go(entry_function function, void *arg) {
         return GC_GOROUTINE_ALLOC_ERROR;
     }
     // Try to allocate a stack for the goroutine
-    if (gc_stack_allocate(&goroutine->stk, GC_DEFAULT_STACK_SIZE)) {
-        gc_stack_free(&goroutine->stk);
+    if (gc_stack_allocate(&goroutine->stk, size)) {
         free(goroutine);
         return GC_STACK_ALLOC_ERROR;
     }
@@ -56,7 +124,7 @@ int go(entry_function function, void *arg) {
     goroutine->arg = arg;
     // Initialize the context of the goroutine
     ctx_make(&goroutine->ctx, goroutine->stk.stack_base, goroutine->stk.stack_size,
-        goroutine->func, goroutine->arg);
+        gc_goroutine_entry, goroutine);
     // Put the goroutine in the queue
     goroutine->status = GC_STATE_RUNNABLE;
     if (current->tail == NULL) {
@@ -90,7 +158,24 @@ int go(entry_function function, void *arg) {
     // Mark the goroutine as dead
     current->status = GC_STATE_DEAD;
     // Switch to the scheduler context
+    GC_ASAN_START(nullptr, sched->stack_bottom, sched->stack_size);
     ctx_switch(&current->ctx, &sched->context);
     // The code should never return here, if it does, then we panic
     abort();
+}
+
+/// Switch contexts with ASan fiber calls
+static void gc_switch(gc_context *from, gc_context *to,
+    void **from_fake, void *to_bottom, size_t to_size) {
+    GC_ASAN_START(from_fake, to_bottom, to_size);
+    ctx_switch(from, to);
+    GC_ASAN_END(*from_fake, nullptr, nullptr);
+}
+
+/// ASan wrapper for the first entry into the goroutine
+static void gc_goroutine_entry(void *p) {
+    gc_scheduler* current = gc_sched_get();
+    gc_goroutine *goroutine = p;
+    GC_ASAN_END(nullptr, &current->stack_bottom, &current->stack_size);
+    goroutine->func(goroutine->arg);
 }

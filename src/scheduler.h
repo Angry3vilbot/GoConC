@@ -32,14 +32,20 @@ typedef struct {
     int count;
     gc_goroutine *head;
     gc_goroutine *tail;
+    // ASan fiber parameters
+    void  *asan_fake_stack;
+    const void  *stack_bottom;
+    size_t stack_size;
 } gc_scheduler;
 
+void run();
 int go(entry_function function, void *arg);
-//int go_sized(entry_function function, void *arg, size_t size);
+int go_sized(entry_function function, void *arg, size_t size);
 
 // Error Codes
 constexpr int GC_GOROUTINE_ALLOC_ERROR = 1;
 constexpr int GC_STACK_ALLOC_ERROR = 2;
+constexpr int GC_SCHEDULER_CALLED_INSIDE_GOROUTINE= 3;
 constexpr int GC_SUCCESS = 0;
 
 #endif //GOCONC_SCHEDULER_H

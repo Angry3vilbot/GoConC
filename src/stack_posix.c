@@ -23,6 +23,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "sanitizer_p.h"
+
 // Fallback for older systems
 #if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
 #  define MAP_ANONYMOUS MAP_ANON
@@ -80,6 +82,7 @@ int gc_stack_allocate(gc_stack *stack, size_t usable_size) {
 /// Deallocate and zero a stack
 /// @param stack The stack to deallocate
 void gc_stack_free(gc_stack *stack) {
+    GC_ASAN_UNPOISON(stack->stack_base, stack->stack_size);
     munmap(stack->alloc_base, stack->alloc_size);
     *stack = (gc_stack){0};
 }

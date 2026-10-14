@@ -22,5 +22,7 @@
 #define GOCONC_SCHEDULER_P_H
 
 [[noreturn]] void goroutine_exit();
+static void gc_switch(gc_context *from, gc_context *to, void **from_fake, void *to_bottom, size_t to_size);
+static void gc_goroutine_entry(void *p);
 
 #endif //GOCONC_SCHEDULER_P_H
