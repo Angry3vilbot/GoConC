@@ -32,6 +32,47 @@ gc_scheduler* gc_sched_get() {
     return &scheduler;
 }
 
+/// Starts a new goroutine
+/// @param function the function that runs inside the goroutine
+/// @param arg the argument for said function
+/// @return GC_SUCCESS on success
+/// GC_GOROUTINE_ALLOC_ERROR if the goroutine could not be allocated
+/// GC_STACK_ALLOC_ERROR if the stack could not be allocated
+int go(entry_function function, void *arg) {
+    gc_scheduler* current = gc_sched_get();
+    // Try to allocate a goroutine
+    gc_goroutine* goroutine = calloc(1, sizeof(gc_goroutine));
+    if (goroutine == NULL) {
+        return GC_GOROUTINE_ALLOC_ERROR;
+    }
+    // Try to allocate a stack for the goroutine
+    if (gc_stack_allocate(&goroutine->stk, GC_DEFAULT_STACK_SIZE)) {
+        gc_stack_free(&goroutine->stk);
+        free(goroutine);
+        return GC_STACK_ALLOC_ERROR;
+    }
+    // Fill in the goroutine struct
+    goroutine->func = function;
+    goroutine->arg = arg;
+    // Initialize the context of the goroutine
+    ctx_make(&goroutine->ctx, goroutine->stk.stack_base, goroutine->stk.stack_size,
+        goroutine->func, goroutine->arg);
+    // Put the goroutine in the queue
+    goroutine->status = GC_STATE_RUNNABLE;
+    if (current->tail == NULL) {
+        current->head = goroutine;
+        current->tail = goroutine;
+    }
+    else {
+        current->tail->next = goroutine;
+        goroutine->prev = current->tail;
+        current->tail = goroutine;
+    }
+    current->count += 1;
+
+    return GC_SUCCESS;
+}
+
 /**
  * Exit out of the goroutine back into the scheduler
  *

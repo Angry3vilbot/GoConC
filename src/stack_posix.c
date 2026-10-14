@@ -37,7 +37,7 @@ static constexpr size_t MAX_STACK_SIZE = 1073741824;
  *
  * @param stack The gc_stack to allocate.
  * @param usable_size The usable size of the gc_stack.
- * @return 0 on success, -1 if mmap or mprotect fails.
+ * @return 0 on success, -1 if mmap or mprotect fails, or if the size of the allocation is invalid.
  */
 int gc_stack_allocate(gc_stack *stack, size_t usable_size) {
     // Get the page size on the first allocation

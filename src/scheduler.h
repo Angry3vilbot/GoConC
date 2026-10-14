@@ -23,9 +23,23 @@
 #include "goroutine.h"
 #include "context.h"
 
+constexpr size_t GC_DEFAULT_STACK_SIZE = 64 * 1024; // 64 KB
+
 typedef struct {
     gc_goroutine *current;
     gc_context context;
+    // Queue
+    int count;
+    gc_goroutine *head;
+    gc_goroutine *tail;
 } gc_scheduler;
+
+int go(entry_function function, void *arg);
+//int go_sized(entry_function function, void *arg, size_t size);
+
+// Error Codes
+constexpr int GC_GOROUTINE_ALLOC_ERROR = 1;
+constexpr int GC_STACK_ALLOC_ERROR = 2;
+constexpr int GC_SUCCESS = 0;
 
 #endif //GOCONC_SCHEDULER_H
