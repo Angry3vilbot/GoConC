@@ -28,6 +28,8 @@ endif()
 add_library(GoConC STATIC
         src/stack_posix.c
         src/scheduler.c
+        src/run_queue.c
+        src/waiter.c
         ${GOCONC_ARCH_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
 

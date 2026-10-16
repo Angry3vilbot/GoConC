@@ -41,15 +41,9 @@ void run() {
     // Scheduler loop
     while (true) {
         // Check if the queue has any goroutines
-        if (current->head != NULL) {
+        if (!gc_run_queue_isEmpty(&current->run_queue)) {
             // Dequeue a goroutine from the queue
-            gc_goroutine* goroutine = current->head;
-            current->head = goroutine->next;
-            goroutine->next = nullptr;
-            // If the new head is null, set tail to null also
-            if (current->head == NULL) {
-                current->tail = nullptr;
-            }
+            gc_goroutine* goroutine = gc_run_queue_dequeue(&current->run_queue);
             // Set the goroutine as running
             goroutine->status = GC_STATE_RUNNING;
             current->current = goroutine;
@@ -66,15 +60,7 @@ void run() {
                 current->count--;
             } else if (goroutine->status == GC_STATE_RUNNABLE) {
                 // Place the goroutine back into the queue
-                if (current->tail == NULL) {
-                    current->head = goroutine;
-                    current->tail = goroutine;
-                }
-                else {
-                    current->tail->next = goroutine;
-                    goroutine->prev = current->tail;
-                    current->tail = goroutine;
-                }
+                gc_run_queue_enqueue(&current->run_queue, goroutine);
             }
         }
         else {
@@ -127,18 +113,26 @@ int go_sized(entry_function function, void *arg, size_t size) {
         gc_goroutine_entry, goroutine);
     // Put the goroutine in the queue
     goroutine->status = GC_STATE_RUNNABLE;
-    if (current->tail == NULL) {
-        current->head = goroutine;
-        current->tail = goroutine;
-    }
-    else {
-        current->tail->next = goroutine;
-        goroutine->prev = current->tail;
-        current->tail = goroutine;
-    }
+    gc_run_queue_enqueue(&current->run_queue, goroutine);
     current->count += 1;
 
     return GC_SUCCESS;
+}
+
+/// Pause the currently running goroutine and return back to the scheduler
+void gc_Gosched() {
+    gc_scheduler* current = gc_sched_get();
+    gc_goroutine* goroutine = current->current;
+    // Check if the scheduler actually has a running goroutine
+    if (goroutine == nullptr) {
+        // If not, gc_Gosched was called outside of a goroutine
+        fprintf(stderr, "GoConC Fatal Error: gc_Gosched called outside of a goroutine!\n");
+        abort();
+    }
+    // Set the goroutine's status to runnable and go back to the scheduler
+    goroutine->status = GC_STATE_RUNNABLE;
+    gc_switch(&goroutine->ctx, &current->context,
+        &goroutine->asan_fake_stack, current->stack_bottom, current->stack_size);
 }
 
 /**
@@ -166,7 +160,7 @@ int go_sized(entry_function function, void *arg, size_t size) {
 
 /// Switch contexts with ASan fiber calls
 static void gc_switch(gc_context *from, gc_context *to,
-    void **from_fake, void *to_bottom, size_t to_size) {
+    void **from_fake, const void *to_bottom, size_t to_size) {
     GC_ASAN_START(from_fake, to_bottom, to_size);
     ctx_switch(from, to);
     GC_ASAN_END(*from_fake, nullptr, nullptr);

@@ -21,8 +21,24 @@
 #ifndef GOCONC_SCHEDULER_P_H
 #define GOCONC_SCHEDULER_P_H
 
+#include "run_queue.h"
+#include "goroutine.h"
+#include "context.h"
+
+typedef struct {
+    gc_goroutine *current;
+    gc_context context;
+    // Queue
+    int count;
+    gc_run_queue run_queue;
+    // ASan fiber parameters
+    void  *asan_fake_stack;
+    const void  *stack_bottom;
+    size_t stack_size;
+} gc_scheduler;
+
 [[noreturn]] void goroutine_exit();
-static void gc_switch(gc_context *from, gc_context *to, void **from_fake, void *to_bottom, size_t to_size);
+static void gc_switch(gc_context *from, gc_context *to, void **from_fake, const void *to_bottom, size_t to_size);
 static void gc_goroutine_entry(void *p);
 
 #endif //GOCONC_SCHEDULER_P_H

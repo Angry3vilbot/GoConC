@@ -20,27 +20,15 @@
 
 #ifndef GOCONC_SCHEDULER_H
 #define GOCONC_SCHEDULER_H
-#include "goroutine.h"
-#include "context.h"
+#include <stddef.h>
+typedef void (*entry_function)(void *);
 
 constexpr size_t GC_DEFAULT_STACK_SIZE = 64 * 1024; // 64 KB
-
-typedef struct {
-    gc_goroutine *current;
-    gc_context context;
-    // Queue
-    int count;
-    gc_goroutine *head;
-    gc_goroutine *tail;
-    // ASan fiber parameters
-    void  *asan_fake_stack;
-    const void  *stack_bottom;
-    size_t stack_size;
-} gc_scheduler;
 
 void run();
 int go(entry_function function, void *arg);
 int go_sized(entry_function function, void *arg, size_t size);
+void gc_Gosched();
 
 // Error Codes
 constexpr int GC_GOROUTINE_ALLOC_ERROR = 1;
