@@ -135,6 +135,35 @@ void gc_Gosched() {
         &goroutine->asan_fake_stack, current->stack_bottom, current->stack_size);
 }
 
+/// Park the current goroutine
+///
+/// Marks the goroutine as waiting and switches back to the scheduler
+void gc_park() {
+    gc_scheduler* current = gc_sched_get();
+    gc_goroutine* goroutine = current->current;
+    // Check if the scheduler actually has a running goroutine
+    if (goroutine == nullptr) {
+        // If not, something's gone horribly wrong
+        fprintf(stderr, "GoConC Fatal Error: Attempted to park on scheduler context!\n");
+        abort();
+    }
+    // Set the goroutine's status to waiting and go back to the scheduler
+    goroutine->status = GC_STATE_WAITING;
+    gc_switch(&goroutine->ctx, &current->context,
+        &goroutine->asan_fake_stack, current->stack_bottom, current->stack_size);
+}
+
+/// Ready a waiting goroutine
+/// @details Marks the goroutine as runnable and enqueues it into the run queue
+/// @param goroutine The goroutine to make ready
+void gc_ready(gc_goroutine *goroutine) {
+    gc_scheduler* current = gc_sched_get();
+    assert(goroutine->status == GC_STATE_WAITING);
+    // Mark the goroutine as runnable and enqueue it
+    goroutine->status = GC_STATE_RUNNABLE;
+    gc_run_queue_enqueue(&current->run_queue, goroutine);
+}
+
 /**
  * Exit out of the goroutine back into the scheduler
  *

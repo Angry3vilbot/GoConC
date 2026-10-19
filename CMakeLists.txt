@@ -30,6 +30,7 @@ add_library(GoConC STATIC
         src/scheduler.c
         src/run_queue.c
         src/waiter.c
+        src/channel.c
         ${GOCONC_ARCH_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
 
