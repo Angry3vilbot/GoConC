@@ -30,6 +30,10 @@
 struct gc_channel {
     size_t unit_size;
     bool closed;
+    size_t buffer_size;
+    int count;
+    unsigned char* buffer;
+    unsigned int buffer_head_index;
     gc_wait_queue senders;
     gc_wait_queue receivers;
 };

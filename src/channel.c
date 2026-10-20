@@ -30,7 +30,7 @@
 * @param unit_size The size of one unit of data, e.g. <code>sizeof(int)</code>
 * @param buffer_size The size of the buffer of a buffered channel.
 * Use <code>0</code> for an unbuffered channel
-* @return The created channel
+* @return The created gc_channel on success, <code>nullptr</code> on allocation failure
 */
 gc_channel* gc_make(size_t unit_size, int buffer_size) {
     // Check that the buffer/unit size is valid
@@ -43,9 +43,21 @@ gc_channel* gc_make(size_t unit_size, int buffer_size) {
         abort();
     }
     // Create the channel
-    gc_channel* chan = calloc(1, sizeof(gc_channel));
+    gc_channel* chan = calloc(1, sizeof(*chan));
+    if (chan == NULL) {
+        return nullptr;
+    }
+    // Allocate the buffer if it's a buffered channel
+    if (buffer_size > 0) {
+        void* buffer = calloc(buffer_size, unit_size);
+        if (buffer == NULL) {
+            free(chan);
+            return nullptr;
+        }
+        chan->buffer = buffer;
+    }
     chan->unit_size = unit_size;
-    //chan->buffer_size = buffer_size;
+    chan->buffer_size = buffer_size;
     gc_wait_queue_init(&chan->senders);
     gc_wait_queue_init(&chan->receivers);
     return chan;
@@ -69,7 +81,7 @@ void gc_free(gc_channel* chan) {
             abort();
         }
         // First, destroy the buffer
-        // TODO: Actually do that when buffered channels are made
+        free(chan->buffer);
         // Then, destroy the channel
         free(chan);
     }
@@ -81,7 +93,7 @@ void gc_free(gc_channel* chan) {
 /// @param chan the channel to send data into
 /// @param data the data to send into the channel
 /// @return GC_CHANNEL_OK on success
-int gc_send(struct gc_channel *chan, void *data) {
+int gc_send(gc_channel *chan, void *data) {
     // Sends to a nullptr are blocked forever
     if (chan == NULL) {
         // TODO: Add a check for a non-blocking send (Select)
@@ -99,9 +111,15 @@ int gc_send(struct gc_channel *chan, void *data) {
         gc_ready(receiver->goroutine);
         return GC_CHANNEL_OK;
     }
-    // TODO: Add branches for the buffered channel (no receiver, has room; no receiver, full)
-    // If there are no receivers, enqueue and block
-    // TODO: convert into buffered version
+    // If there is no receiver, but there is room in the buffer, copy the data into the buffer
+    if (chan->count < chan->buffer_size) {
+        size_t buffer_slot = (chan->buffer_head_index + chan->count) % chan->buffer_size;
+        memcpy(chan->buffer + buffer_slot * chan->unit_size, data, chan->unit_size);
+        chan->count++;
+        // Return without blocking
+        return GC_CHANNEL_OK;
+    }
+    // If there are no receivers, and there's no room in the buffer/channel is unbuffered, enqueue and block
     // Create a waiter
     gc_scheduler* sched = gc_sched_get();
     gc_waiter waiter = {
@@ -120,9 +138,9 @@ int gc_send(struct gc_channel *chan, void *data) {
 /// Receive data from the channel
 /// @details Directly receives the data into an address in memory.
 /// @param chan the channel to receive data from
-/// @param data the 
+/// @param data the pointer to where to place the data
 /// @return GC_CHANNEL_OK on success
-int gc_receive(struct gc_channel *chan, void *data) {
+int gc_receive(gc_channel *chan, void *data) {
     // Receives from a nullptr are blocked forever
     if (chan == NULL) {
         // TODO: Add a check for a non-blocking receive (Select)
@@ -130,6 +148,24 @@ int gc_receive(struct gc_channel *chan, void *data) {
         // We should never return here
         fprintf(stderr, "GoConc Fatal Error: Resumed a goroutine that received from a null channel");
         abort();
+    }
+    // If the buffer has data in it, copy the data from the buffer and process a waiting sender (if there is one)
+    if (chan->buffer_size != 0 && chan->count > 0) {
+        memcpy(data, chan->buffer + chan->buffer_head_index * chan->unit_size, chan->unit_size);
+        chan->buffer_head_index = (chan->buffer_head_index + 1) % chan->buffer_size;
+        chan->count--;
+        // Check if there is a sender waiting to put data into the buffer
+        if (!gc_wait_queue_isEmpty(&chan->senders)) {
+            // Copy the data into the queue
+            gc_waiter* sender = gc_wait_queue_dequeue(&chan->senders);
+            size_t buffer_slot = (chan->buffer_head_index + chan->count) % chan->buffer_size;
+            memcpy(chan->buffer + buffer_slot * chan->unit_size, sender->data, chan->unit_size);
+            chan->count++;
+            // Ready the sender
+            gc_ready(sender->goroutine);
+        }
+        // Return without blocking
+        return GC_CHANNEL_OK;
     }
     // Check if there are any senders available for a direct handoff
     if (!gc_wait_queue_isEmpty(&chan->senders)) {
@@ -139,9 +175,7 @@ int gc_receive(struct gc_channel *chan, void *data) {
         gc_ready(sender->goroutine);
         return GC_CHANNEL_OK;
     }
-    // TODO: Add branches for the buffered channel (no sender, has room; no sender, full)
-    // If there are no senders, enqueue and block
-    // TODO: convert into buffered version
+    // If there are no senders, and there's no room in the buffer/channel is unbuffered, enqueue and block
     // Create a waiter
     gc_scheduler* sched = gc_sched_get();
     gc_waiter waiter = {
