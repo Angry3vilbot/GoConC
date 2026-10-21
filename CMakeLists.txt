@@ -4,6 +4,7 @@ project(GoConC VERSION 0.0.1 LANGUAGES C)
 # Options
 option(GOCONC_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(GOCONC_SANITIZE "Build with ASan/UBSan (not TSan)" OFF)
+option(GOCONC_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
 
 set(CMAKE_C_STANDARD 23)
 
@@ -42,4 +43,8 @@ target_compile_definitions(GoConC PRIVATE _DEFAULT_SOURCE)
 if(GOCONC_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(GOCONC_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
