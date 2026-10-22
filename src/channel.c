@@ -92,7 +92,7 @@ void gc_free(gc_channel* chan) {
 /// Unbuffered channels only use direct handoff
 /// @param chan the channel to send data into
 /// @param data the data to send into the channel
-/// @return GC_CHANNEL_OK on success
+/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed
 int gc_send(gc_channel *chan, void *data) {
     // Sends to a nullptr are blocked forever
     if (chan == NULL) {
@@ -101,6 +101,10 @@ int gc_send(gc_channel *chan, void *data) {
         // We should never return here
         fprintf(stderr, "GoConc Fatal Error: Resumed a goroutine that sent on a null channel");
         abort();
+    }
+    // If it's sending to a closed channel, return GC_CHANNEL_CLOSED early
+    if (chan->closed) {
+        return GC_CHANNEL_CLOSED;
     }
     // Check if there are any receivers available for a direct handoff
     if (!gc_wait_queue_isEmpty(&chan->receivers)) {
@@ -131,15 +135,14 @@ int gc_send(gc_channel *chan, void *data) {
     // Enqueue the waiter
     gc_wait_queue_enqueue(&chan->senders, &waiter);
     gc_park();
-    // TODO: Add a check for sending on a closed channel after being unblocked
-    return GC_CHANNEL_OK;
+    return waiter.closed ? GC_CHANNEL_CLOSED : GC_CHANNEL_OK;
 }
 
 /// Receive data from the channel
 /// @details Directly receives the data into an address in memory.
 /// @param chan the channel to receive data from
 /// @param data the pointer to where to place the data
-/// @return GC_CHANNEL_OK on success
+/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed
 int gc_receive(gc_channel *chan, void *data) {
     // Receives from a nullptr are blocked forever
     if (chan == NULL) {
@@ -175,6 +178,13 @@ int gc_receive(gc_channel *chan, void *data) {
         gc_ready(sender->goroutine);
         return GC_CHANNEL_OK;
     }
+    // If the channel is closed, zero the data if needed and return
+    if (chan->closed) {
+        if (data != nullptr) {
+            memset(data, 0, chan->unit_size);
+        }
+        return GC_CHANNEL_CLOSED;
+    }
     // If there are no senders, and there's no room in the buffer/channel is unbuffered, enqueue and block
     // Create a waiter
     gc_scheduler* sched = gc_sched_get();
@@ -187,6 +197,39 @@ int gc_receive(gc_channel *chan, void *data) {
     // Enqueue the waiter
     gc_wait_queue_enqueue(&chan->receivers, &waiter);
     gc_park();
-    // TODO: Add a check for receiving on a closed channel after being unblocked
+    return waiter.closed ? GC_CHANNEL_CLOSED : GC_CHANNEL_OK;
+}
+
+/// Close the channel
+/// @param chan the pointer to the channel to close
+/// @returns GC_CHANNEL_OK on success
+int gc_close(gc_channel *chan) {
+    // Closing a null channel is an error
+    if (chan == NULL) {
+        fprintf(stderr, "GoConc Fatal Error: Closed a null channel");
+        abort();
+    }
+    // So is closing an already closed channel
+    if (chan->closed) {
+        fprintf(stderr, "GoConc Fatal Error: Closed an already closed channel");
+        abort();
+    }
+    // Close the channel
+    chan->closed = true;
+    // Wake all blocked receivers
+    while (!gc_wait_queue_isEmpty(&chan->receivers)) {
+        gc_waiter* receiver = gc_wait_queue_dequeue(&chan->receivers);
+        // Zero the data buffer
+        memset(receiver->data, 0, chan->unit_size);
+        receiver->closed = true;
+        gc_ready(receiver->goroutine);
+    }
+    // Wake all blocked senders, they'll return GC_CHANNEL_CLOSED upon waking
+    while (!gc_wait_queue_isEmpty(&chan->senders)) {
+        gc_waiter* sender = gc_wait_queue_dequeue(&chan->senders);
+        sender->closed = true;
+        gc_ready(sender->goroutine);
+    }
+
     return GC_CHANNEL_OK;
 }

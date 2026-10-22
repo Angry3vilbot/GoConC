@@ -29,6 +29,7 @@ typedef enum {
 typedef struct gc_waiter {
     struct gc_goroutine *goroutine;
     struct gc_waiter *next;
+    bool closed;
     void *data;
     GC_WAITER_DIRECTION direction;
     // TODO: Add fields related to select

@@ -29,7 +29,7 @@ gc_channel* gc_make(size_t unit_size, int buffer_size);
 void gc_free(gc_channel* chan);
 int gc_send(gc_channel *chan, void *data);
 int gc_receive(gc_channel *chan, void *data);
-void gc_close(gc_channel *chan);
+int gc_close(gc_channel *chan);
 // Status codes
 constexpr int GC_CHANNEL_OK = 0;
 constexpr int GC_CHANNEL_ERROR = 1;

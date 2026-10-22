@@ -1,0 +1,61 @@
+// Copyright (c) 2026 Mykhailo Balaker
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+
+// Test that the producer/consumer pattern works
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "channel.h"
+#include "scheduler.h"
+
+void producer(void* arg) {
+    gc_channel* channel = arg;
+    int* data = malloc(20 * sizeof(int));
+    for (int i = 0; i < 20; i++) {
+        data[i] = rand();
+        gc_send(channel, &data[i]);
+        printf("Producer has sent a value %d\n", data[i]);
+        fflush(stdout);
+    }
+    free(data);
+    gc_close(channel);
+}
+
+void consumer(void* arg) {
+    gc_channel* channel = arg;
+    int received_value;
+    while (gc_receive(channel, &received_value) == GC_CHANNEL_OK) {
+        printf("Consumer received value %d\n", received_value);
+        fflush(stdout);
+        gc_Gosched();
+    }
+}
+
+int main() {
+    gc_channel* channel = gc_make(sizeof(int), 10);
+    go(producer, channel);
+    go(consumer, channel);
+    run();
+
+    gc_free(channel);
+    return 0;
+}
