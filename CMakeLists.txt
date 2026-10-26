@@ -33,6 +33,7 @@ add_library(GoConC STATIC
         src/waiter.c
         src/channel.c
         src/waitgroup.c
+        src/mutex.c
         ${GOCONC_ARCH_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
 

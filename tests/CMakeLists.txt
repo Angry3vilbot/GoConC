@@ -9,6 +9,7 @@ set(
         unbuffered_channel
         buffered_channel
         waitgroup
+        mutex
 )
 
 foreach (name IN LISTS tests)
