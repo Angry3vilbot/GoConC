@@ -35,21 +35,6 @@ struct arg_struct {
     double value;
 };
 
-struct collect_arg {
-    gc_channel* chan;
-    int n;
-    double sum;
-};
-
-void collect(void* args) {
-    struct collect_arg* arg = args;
-    for (int k = 0; k < arg->n; k++) {
-        double result;
-        gc_receive(arg->chan, &result);
-        arg->sum += result;
-    }
-}
-
 void term(void* args) {
     struct arg_struct* arg = args;
     double value = 4 * pow(-1, arg->value) / ((2*arg->value + 2) * (2*arg->value + 3) * (2*arg->value + 4));
@@ -69,21 +54,21 @@ double pi(int n) {
         go(term, &args[k]);
     }
 
-    struct collect_arg collect_arg;
-    collect_arg.chan = channel;
-    collect_arg.n = n;
-    collect_arg.sum = 0;
-    go(collect, &collect_arg);
-    run();
-
-    double f = 3.0 + collect_arg.sum;
+    double f = 3.0;
+    for (int k = 0; k < n; k++) {
+        double recv;
+        gc_receive(channel, &recv);
+        f += recv;
+    }
 
     gc_free(channel);
     free(args);
     return f;
 }
 
-int main() {
+int gc_user_main(int argc, char **argv) {
     printf("pi:%f\n", 3.14159265358979323846);
     printf("Nilakantha Series:%f\n", pi(5000));
+
+    return 0;
 }
