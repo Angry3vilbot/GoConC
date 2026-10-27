@@ -35,8 +35,26 @@ add_library(GoConC STATIC
         src/waitgroup.c
         src/mutex.c
         src/once.c
+        src/gc_main.c
         ${GOCONC_ARCH_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
+
+# Optional library providing a main function that allows the user to simply define gc_user_main
+# and have the whole program run inside a goroutine without any extra work.
+# int gc_user_main(int argc, char **argv) {
+#   // Contents of the "main" function here
+# }
+# It is equivalent to doing the following yourself:
+# int func(void* arg) {}
+# int main(int argc, char **argv) {
+#   // Pack argc and argv into a struct if needed and pass it into gc_main, otherwise pass a nullptr
+#   gc_main(func, nullptr)
+# }
+# Note: You can NOT define the main function yourself if you link this library, since it supplies one
+# on its own. If you wish to have your own main function, just link the core library alone.
+add_library(GoConC_main STATIC src/entry.c)
+target_link_libraries(GoConC_main PUBLIC GoConC)
+add_library(GoConC::main ALIAS GoConC_main)
 
 target_include_directories(GoConC
         PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

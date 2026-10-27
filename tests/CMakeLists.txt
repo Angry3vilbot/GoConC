@@ -11,6 +11,7 @@ set(
         waitgroup
         mutex
         once
+        main
 )
 
 foreach (name IN LISTS tests)
@@ -26,6 +27,8 @@ add_executable(test_closing_channels test_closing_channels/test_closing_channels
 add_executable(test_send_after_closing_channel test_closing_channels/test_send_after_closing_channel.c)
 add_executable(test_closing_closed_channel test_closing_channels/test_closing_closed_channel.c)
 add_executable(test_producer_consumer test_closing_channels/test_producer_consumer.c)
+add_executable(test_entry test_entry.c)
+add_executable(test_entry_args test_entry_args.c)
 
 target_include_directories(test_context_registers PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(test_context_registers PRIVATE GoConC::GoConC)
@@ -37,6 +40,10 @@ target_include_directories(test_closing_closed_channel PRIVATE ${PROJECT_SOURCE_
 target_link_libraries(test_closing_closed_channel PRIVATE GoConC::GoConC)
 target_include_directories(test_producer_consumer PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(test_producer_consumer PRIVATE GoConC::GoConC)
+target_include_directories(test_entry PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(test_entry PRIVATE GoConC::GoConC GoConC::main)
+target_include_directories(test_entry_args PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(test_entry_args PRIVATE GoConC::GoConC GoConC::main)
 
 add_test(NAME context_registers COMMAND test_context_registers)
 add_test(NAME closing_channels COMMAND test_closing_channels)
@@ -44,3 +51,6 @@ add_test(NAME send_after_closing_channel COMMAND test_send_after_closing_channel
 add_test(NAME closing_closed_channel COMMAND ${CMAKE_COMMAND} -E env $<TARGET_FILE:test_closing_closed_channel>)
 set_tests_properties(closing_closed_channel PROPERTIES WILL_FAIL TRUE)
 add_test(NAME producer_consumer COMMAND test_producer_consumer)
+add_test(NAME entry COMMAND test_entry)
+set_tests_properties(entry PROPERTIES WILL_FAIL TRUE)
+add_test(NAME entry_args COMMAND test_entry_args a b c)
