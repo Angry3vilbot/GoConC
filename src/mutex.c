@@ -26,55 +26,30 @@
 #include "mutex_p.h"
 #include "scheduler_p.h"
 
-/**
-* Make a Mutex Lock.
-* @details Creates a new Mutex and initialises its queue.
-* @warning You must call @link gc_mutex_free @endlink after you finish using the Mutex Lock
-* (or at the end of the program) to free the memory allocated to it, otherwise you'll get a memory leak.
-* @return The pointer to the created gc_mutex on success, <code>nullptr</code> on allocation failure
-*/
-gc_mutex* gc_mutex_make() {
-    gc_mutex* mu = calloc(1, sizeof(*mu));
-    if (mu == NULL) {
-        return nullptr;
-    }
-    gc_wait_queue_init(&mu->wait_queue);
-    return mu;
-}
-/**
- * Free a Mutex Lock.
- * @details Frees memory allocated to a Mutex.
- * @warning Must be called after you finish using the Mutex Lock (or at the end of the program)
- * to free the memory allocated to it, otherwise you'll get a memory leak.
- * @param mu The Mutex to free
- */
-void gc_mutex_free(gc_mutex* mu) {
-    if (mu == NULL) {
-        // NOOP
-    }
-    else {
-        // Check if the queue is actually empty
-        if (!gc_wait_queue_isEmpty(&mu->wait_queue)) {
-            fprintf(stderr, "GoConc Fatal Error: Mutex destroyed with waiting goroutines");
-            abort();
-        }
-        free(mu);
-    }
+/// Convert the gc_mutex into a gc_mutex_impl for use in functions
+/// @param m The public gc_mutex
+/// @return The private gc_mutex_impl
+static gc_mutex_impl *impl(gc_mutex *m) {
+    return (gc_mutex_impl *)m;
 }
 
 /// Lock a Mutex Lock
 /// @details Tries to lock the Mutex. If it is already locked, the goroutine is blocked until it becomes available
 /// @param mu The Mutex to lock
 void gc_mutex_lock(gc_mutex* mu) {
-    if (mu == NULL) {
+    gc_mutex_impl* mi = impl(mu);
+    gc_mutex_lock_impl(mi);
+}
+void gc_mutex_lock_impl(gc_mutex_impl* mi) {
+    if (mi == NULL) {
         fprintf(stderr, "GoConc Fatal Error: NULL mutex in gc_mutex_lock");
         abort();
     }
     gc_scheduler* scheduler = gc_sched_get();
     // Check if the lock is unlocked (has no owner)
-    if (mu->owner == NULL) {
+    if (mi->owner == NULL) {
         // Claim the lock and return
-        mu->owner = scheduler->current;
+        mi->owner = scheduler->current;
         return;
     }
     // If it isn't, enqueue and park. Once we return here we already own the lock
@@ -86,7 +61,7 @@ void gc_mutex_lock(gc_mutex* mu) {
         .direction = GC_WAITER_RECEIVE // Unused
     };
     // Enqueue the waiter
-    gc_wait_queue_enqueue(&mu->wait_queue, &waiter);
+    gc_wait_queue_enqueue(&mi->wait_queue, &waiter);
     gc_park();
 }
 
@@ -95,23 +70,27 @@ void gc_mutex_lock(gc_mutex* mu) {
 /// @note A locked Mutex can be unlocked by a different goroutine than the one that locked it.
 /// @param mu The Mutex to unlock
 void gc_mutex_unlock(gc_mutex* mu) {
-    if (mu == NULL) {
+    gc_mutex_impl* mi = impl(mu);
+    gc_mutex_unlock_impl(mi);
+}
+void gc_mutex_unlock_impl(gc_mutex_impl* mi) {
+    if (mi == NULL) {
         fprintf(stderr, "GoConc Fatal Error: NULL mutex in gc_mutex_unlock");
         abort();
     }
     // Unlocking an unlocked mutex is an error, abort
-    if (mu->owner == NULL) {
+    if (mi->owner == NULL) {
         fprintf(stderr, "GoConc Fatal Error: Unlock of unlocked Mutex");
         abort();
     }
     // If the queue is empty, remove the owner and return
-    if (gc_wait_queue_isEmpty(&mu->wait_queue)) {
-        mu->owner = nullptr;
+    if (gc_wait_queue_isEmpty(&mi->wait_queue)) {
+        mi->owner = nullptr;
         return;
     }
     // Otherwise, give the lock to the first waiter
-    gc_waiter* waiter = gc_wait_queue_dequeue(&mu->wait_queue);
-    mu->owner = waiter->goroutine;
+    gc_waiter* waiter = gc_wait_queue_dequeue(&mi->wait_queue);
+    mi->owner = waiter->goroutine;
     gc_ready(waiter->goroutine);
 }
 
@@ -120,10 +99,11 @@ void gc_mutex_unlock(gc_mutex* mu) {
 /// @param mu The Mutex to try locking
 /// @return <code>true</code> on success, <code>false</code> if it would be blocked
 bool gc_mutex_trylock(gc_mutex* mu) {
-    if (mu == NULL) {
+    gc_mutex_impl* mi = impl(mu);
+    if (mi == NULL) {
         fprintf(stderr, "GoConc Fatal Error: NULL mutex in gc_mutex_trylock");
     }
-    if (mu->owner != NULL) {
+    if (mi->owner != NULL) {
         return false;
     }
     return true;

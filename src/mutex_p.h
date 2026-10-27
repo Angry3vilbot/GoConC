@@ -22,10 +22,17 @@
 #define GOCONC_MUTEX_P_H
 #include "goroutine.h"
 #include "waiter.h"
+#include "mutex.h"
 
-typedef struct gc_mutex {
+typedef struct gc_mutex_impl {
     gc_goroutine* owner;
     gc_wait_queue wait_queue;
-} gc_mutex;
+} gc_mutex_impl;
+
+void gc_mutex_lock_impl(gc_mutex_impl* mi);
+void gc_mutex_unlock_impl(gc_mutex_impl* mi);
+
+static_assert(sizeof(gc_mutex_impl) <= GC_MUTEX_SIZE, "GC_MUTEX_SIZE is too small, make it larger");
+static_assert(_Alignof(gc_mutex_impl) <= _Alignof(gc_mutex), "Alignment is wrong");
 
 #endif //GOCONC_MUTEX_P_H

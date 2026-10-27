@@ -41,14 +41,13 @@ void worker(void* arg) {
 }
 
 int main() {
-    gc_mutex* mu = gc_mutex_make();
+    gc_mutex mu = GC_MUTEX_INIT;
 
     for (int i = 0; i < 10; i++) {
-        go(worker, mu);
+        go(worker, &mu);
     }
     run();
 
     assert(shared_counter == 10);
-    gc_mutex_free(mu);
     return 0;
 }

@@ -20,13 +20,20 @@
 
 #ifndef GOCONC_MUTEX_H
 #define GOCONC_MUTEX_H
+#define GC_MUTEX_SIZE 32  // The amount of bytes reserved for the mutex implementation (with headroom)
+#include <stddef.h>
 
-typedef struct gc_mutex gc_mutex;
+/// Mutex Lock
+/// @warning Do NOT copy/pass by value, it will corrupt the wait queue
+typedef struct gc_mutex {
+    // Byte-Aligned reserved field for the opaque implementation
+    _Alignas(16) unsigned char opaque[GC_MUTEX_SIZE];
+} gc_mutex;
 
-gc_mutex* gc_mutex_make();
-void gc_mutex_free(gc_mutex* mu);
 void gc_mutex_lock(gc_mutex* mu);
 void gc_mutex_unlock(gc_mutex* mu);
 bool gc_mutex_trylock(gc_mutex* mu);
+// Initializer for readability
+#define GC_MUTEX_INIT {{0}}
 
 #endif //GOCONC_MUTEX_H
