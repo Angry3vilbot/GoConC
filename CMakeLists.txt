@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.21)
 project(GoConC VERSION 0.1.0 LANGUAGES C)
 
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
 # Options
 option(GOCONC_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(GOCONC_SANITIZE "Build with ASan/UBSan (not TSan)" OFF)
 option(GOCONC_BUILD_EXAMPLES "Build examples" ${PROJECT_IS_TOP_LEVEL})
-
-set(CMAKE_C_STANDARD 23)
 
 # Pick platform sources
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _proc)
@@ -39,6 +41,7 @@ add_library(GoConC STATIC
         src/select.c
         ${GOCONC_ARCH_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
+target_compile_features(GoConC PUBLIC c_std_23)
 
 # Optional library providing a main function that allows the user to simply define gc_user_main
 # and have the whole program run inside a goroutine without any extra work.

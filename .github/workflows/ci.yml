@@ -13,9 +13,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-22.04, cc: gcc-13,   build: Debug }
-          - { os: ubuntu-22.04, cc: gcc-13,   build: Release }
-          - { os: ubuntu-24.04, cc: clang-18, build: Debug }
+          - { os: ubuntu-24.04, cc: gcc-13,   build: Debug }
+          - { os: ubuntu-24.04, cc: gcc-13,   build: Release }
+          - { os: ubuntu-24.04, cc: clang-19, build: Debug }
+          - { os: ubuntu-24.04, cc: clang-19, build: Release }
           - { os: ubuntu-24.04, cc: gcc-13,   build: Debug, sanitize: ON }
     env:
       CC: ${{ matrix.cc }}
@@ -25,7 +26,7 @@ jobs:
       - name: Install compiler
         run: |
           sudo apt-get update
-          sudo apt-get install -y ${{ matrix.cc == 'gcc-13' && 'gcc-13' || 'clang-18' }}
+          sudo apt-get install -y ${{ matrix.cc == 'gcc-13' && 'gcc-13' || 'clang-19' }}
 
       - name: Configure
         run: >
@@ -43,6 +44,7 @@ jobs:
         run: cmake --install build --prefix "$PWD/_install"
 
       - name: Test installed package
+        if: matrix.build == 'Release'
         run: |
           cmake -S tests/consumer -B build-consumer \
             -DCMAKE_PREFIX_PATH="$PWD/_install"
@@ -51,16 +53,17 @@ jobs:
           ./build-consumer/consumer
 
       - name: Test FetchContent integration
+        if: matrix.build == 'Release'
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             # Test fetching the actual release tag.
-            cmake -S tests/consumer-fetch -B build-fetch \
+            cmake -S tests/consumer_fetch -B build-fetch \
               -DGOCONC_TEST_TAG="$GITHUB_REF_NAME" \
               -DFETCHCONTENT_FULLY_DISCONNECTED=OFF \
               -DGOCONC_BUILD_TESTS=OFF
           else
             # On PRs, test against the source currently checked out by CI.
-            cmake -S tests/consumer-fetch -B build-fetch \
+            cmake -S tests/consumer_fetch -B build-fetch \
               -DGOCONC_TEST_TAG="$GITHUB_SHA" \
               -DFETCHCONTENT_SOURCE_DIR_GOCONC="$GITHUB_WORKSPACE" \
               -DGOCONC_BUILD_TESTS=OFF

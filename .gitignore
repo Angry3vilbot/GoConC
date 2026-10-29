@@ -57,5 +57,4 @@ dkms.conf
 # custom
 cmake-build-debug
 .idea
-cmake
 build

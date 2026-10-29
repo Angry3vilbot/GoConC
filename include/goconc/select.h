@@ -23,6 +23,7 @@
 #define GC_SELECT_MAX_CASES 64
 
 #include "goconc/channel.h"
+#include <stdbool.h>
 
 typedef enum {
     GC_CASE_SEND,

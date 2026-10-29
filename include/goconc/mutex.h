@@ -22,6 +22,7 @@
 #define GOCONC_MUTEX_H
 #define GC_MUTEX_SIZE 32  // The amount of bytes reserved for the mutex implementation (with headroom)
 #include <stddef.h>
+#include <stdbool.h>
 
 /// Mutex Lock
 /// @warning Do NOT copy/pass by value, it will corrupt the wait queue
