@@ -23,8 +23,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "scheduler.h"
-#include "waitgroup.h"
+#include "../include/goconc/scheduler.h"
+#include "../include/goconc/waitgroup.h"
 
 struct test_struct {
     int check_value;
@@ -58,25 +58,25 @@ int main() {
     test.check_value = 0;
     test.wg = wg;
     // Test #1: Waiting on a zero count does not block
-    go(waiter, &test);
-    run();
+    gc_go(waiter, &test);
+    gc_run();
     assert(test.check_value == 1);
     printf("\n");
     // Test #2: Waiter completes after all workers are done
     gc_wg_add(wg, 10);
-    go(waiter, &test);
+    gc_go(waiter, &test);
     for (int i = 0; i < 10; i++) {
-        go(worker, &test);
+        gc_go(worker, &test);
     }
-    run();
+    gc_run();
     assert(test.check_value == 43);
     printf("\n");
     // Test #3: Multiple waiters on one WaitGroup all wake up
     gc_wg_add(wg, 1);
-    go(waiter, &test);
-    go(waiter, &test);
-    go(worker, &test);
-    run();
+    gc_go(waiter, &test);
+    gc_go(waiter, &test);
+    gc_go(worker, &test);
+    gc_run();
     assert(test.check_value == 183);
 
     gc_wg_free(wg);

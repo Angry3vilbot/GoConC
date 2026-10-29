@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "scheduler.h"
+#include "goconc/scheduler.h"
 // Test that the scheduler works as intended
 
 void printer(void* args) {
@@ -31,9 +31,9 @@ void printer(void* args) {
 
 int main() {
     for (int i = 1; i <= 10; i++) {
-        go(printer, (void *)(intptr_t)i);
+        gc_go(printer, (void *)(intptr_t)i);
     }
-    run();
+    gc_run();
 
     return 0;
 }

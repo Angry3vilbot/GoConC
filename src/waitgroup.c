@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "waitgroup.h"
+#include "../include/goconc/waitgroup.h"
 
 #include <stdio.h>
 
@@ -28,13 +28,6 @@
 
 #include "scheduler_p.h"
 
-/**
-* Make a WaitGroup.
-* @details Creates a new WaitGroup and initialises its queue.
-* @warning You must call @link gc_wg_free @endlink after you finish using the WaitGroup
-* (or at the end of the program) to free the memory allocated to it, otherwise you'll get a memory leak.
-* @return The pointer to the created gc_waitgroup on success, <code>nullptr</code> on allocation failure
-*/
 gc_waitgroup* gc_wg_make() {
     gc_waitgroup* wg = calloc(1, sizeof(*wg));
     if (wg == NULL) {
@@ -44,13 +37,6 @@ gc_waitgroup* gc_wg_make() {
 
     return wg;
 }
-/**
- * Free a WaitGroup.
- * @details Frees memory allocated to a WaitGroup.
- * @warning Must be called after you finish using the WaitGroup (or at the end of the program)
- * to free the memory allocated to it, otherwise you'll get a memory leak.
- * @param wg The WaitGroup to free
- */
 void gc_wg_free(gc_waitgroup* wg) {
     if (wg == NULL) {
         // NOOP
@@ -65,12 +51,6 @@ void gc_wg_free(gc_waitgroup* wg) {
     }
 }
 
-/// Add the delta to the WaitGroup's counter
-/// @details Adds <code>delta</code>, which may be negative, to the WaitGroup's counter.
-/// If the counter becomes zero, all goroutines blocked by @link gc_wg_wait @endlink are unblocked.
-/// If the counter goes negative, the program aborts.
-/// @param wg The target WaitGroup
-/// @param delta The value to add to the WaitGroup's counter
 void gc_wg_add(gc_waitgroup* wg, long delta) {
     if (wg == NULL) {
         fprintf(stderr, "GoConc Fatal Error: NULL WaitGroup in gc_wg_add");
@@ -94,9 +74,6 @@ void gc_wg_add(gc_waitgroup* wg, long delta) {
     }
 }
 
-/// Decrement the WaitGroup's counter by 1
-/// @details Equivalent to calling <code>gc_wg_add(wg, -1)</code>
-/// @param wg The target WaitGroup
 void gc_wg_done(gc_waitgroup* wg) {
     if (wg == NULL) {
         fprintf(stderr, "GoConc Fatal Error: NULL WaitGroup in gc_wg_done");
@@ -106,9 +83,6 @@ void gc_wg_done(gc_waitgroup* wg) {
     gc_wg_add(wg, -1);
 }
 
-/// Wait until the WaitGroup's task counter is zero
-/// @details Parks the goroutine until the counter reaches zero.
-/// @param wg The target WaitGroup
 void gc_wg_wait(gc_waitgroup* wg) {
     if (wg == NULL) {
         fprintf(stderr, "GoConc Fatal Error: NULL WaitGroup in gc_wg_wait");

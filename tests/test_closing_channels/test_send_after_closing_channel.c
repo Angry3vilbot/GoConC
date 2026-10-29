@@ -23,8 +23,8 @@
 
 #include <stdio.h>
 
-#include "channel.h"
-#include "scheduler.h"
+#include "../../include/goconc/channel.h"
+#include "../../include/goconc/scheduler.h"
 
 void sender(void* arg) {
     gc_channel* channel = arg;
@@ -48,10 +48,10 @@ void closer(void* arg) {
 
 int main() {
     gc_channel* channel = gc_make(sizeof(int), 10);
-    go(sender, channel);
-    go(closer, channel);
-    go(sender, channel);
-    run();
+    gc_go(sender, channel);
+    gc_go(closer, channel);
+    gc_go(sender, channel);
+    gc_run();
 
     gc_free(channel);
     return 0;

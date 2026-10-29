@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "select.h"
+#include "../include/goconc/select.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -64,16 +64,6 @@ size_t get_poll_order(gc_select_case* case_list, size_t num, size_t* poll_order)
     return n;
 }
 
-/// Wait on multiple channels
-/// @details Lets a goroutine wait on multiple communication operations.
-/// Blocks until one of its cases can run, then it executes that case.
-/// Checks cases in random order for fairness.
-/// @warning The maximum number of cases in a select is capped to @link GC_SELECT_MAX_CASES @endlink
-/// @param case_list The array of @link gc_select_case @endlink cases
-/// @param num_cases The amount of cases in the list
-/// @param has_default Whether the select operates as if it has a default case,
-/// i.e. does not block if no case can run
-/// @return The index of the winning case, -1 if no case is available and <code>has_default == true</code>
 int gc_select(gc_select_case* case_list, size_t num_cases, bool has_default) {
     // If the number of cases is over the limit, abort
     if (num_cases > GC_SELECT_MAX_CASES) {

@@ -18,24 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef GOCONC_CHANNEL_H
-#define GOCONC_CHANNEL_H
+#ifndef GOCONC_GC_MAIN_H
+#define GOCONC_GC_MAIN_H
 
-#include <stddef.h>
+/// Run a given function as the first (main) goroutine
+/// @details Starts the scheduler before running the provided function using go_sized. Allows the program's
+/// own entry function to use all the features that can run exclusively on a goroutine.
+/// @param func The function to run
+/// @param arg The function's argument
+/// @return The return value of the function (the exit code)
+int gc_main(int (*func)(void *), void *arg);
 
-typedef struct gc_channel gc_channel;
-
-gc_channel* gc_make(size_t unit_size, int buffer_size);
-void gc_free(gc_channel* chan);
-int gc_send(gc_channel *chan, void *data);
-int gc_receive(gc_channel *chan, void *data);
-int gc_close(gc_channel *chan);
-int gc_try_receive(gc_channel *chan, void *data);
-int gc_try_send(gc_channel *chan, void *data);
-// Status codes
-constexpr int GC_CHANNEL_OK = 0;
-constexpr int GC_CHANNEL_ERROR = 1;
-constexpr int GC_CHANNEL_CLOSED = 2;
-constexpr int GC_CHANNEL_WOULD_BLOCK = 3;
-
-#endif //GOCONC_CHANNEL_H
+#endif //GOCONC_GC_MAIN_H

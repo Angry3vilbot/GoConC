@@ -21,8 +21,8 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "scheduler.h"
-#include "select.h"
+#include "goconc/scheduler.h"
+#include "goconc/select.h"
 // Test that the select implementation works as intended
 
 int results[4];
@@ -88,15 +88,15 @@ int main() {
         .ch1 = ch1, .ch2 = ch2
     };
     // 1: The selector gets blocked immediately
-    go(selector, &holder);
+    gc_go(selector, &holder);
     // 2: The sender sends to the first selector and exits
-    go(sender, ch1);
+    gc_go(sender, ch1);
     // 3: The receiver parks because the first selector already has a winner
-    go(receiver, ch2);
+    gc_go(receiver, ch2);
     // 4: The selector sends to the receiver and exits
-    go(selector, &holder);
+    gc_go(selector, &holder);
     // 5: The first selector wakes up and receives the data from 2
-    run();
+    gc_run();
     // 6: The receiver wakes up and receives the data from 4
 
     gc_free(ch1);

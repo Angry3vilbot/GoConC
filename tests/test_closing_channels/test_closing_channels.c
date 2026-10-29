@@ -23,8 +23,8 @@
 
 #include <stdio.h>
 
-#include "channel.h"
-#include "scheduler.h"
+#include "../../include/goconc/channel.h"
+#include "../../include/goconc/scheduler.h"
 
 void receiver(void* arg) {
     gc_channel* channel = arg;
@@ -68,10 +68,10 @@ int main() {
     printf("Test #1: closing an empty channel with blocked receivers.\n"
            "All receivers should wake with GC_CHANNEL_CLOSED.\n");
     for (int i = 0; i < 5; i++) {
-        go(receiver, unbuffered);
+        gc_go(receiver, unbuffered);
     }
-    go(closer, unbuffered);
-    run();
+    gc_go(closer, unbuffered);
+    gc_run();
 
     printf("\nTest #2: closing a channel with values.\n"
            "Three receivers should wake with values, two with GC_CHANNEL_CLOSED.\n");
@@ -80,21 +80,21 @@ int main() {
         gc_send(buffered, &test);
     }
     for (int i = 0; i < 5; i++) {
-        go(receiver, buffered);
+        gc_go(receiver, buffered);
     }
-    go(closer, buffered);
-    run();
+    gc_go(closer, buffered);
+    gc_run();
 
     printf("\nTest #3: closing a full channel with blocked senders.\n"
            "The senders return GC_CHANNEL_CLOSED, buffered values can still be received.\n");
     for (int i = 0; i < 10; i++) {
-        go(sender, full_buffered);
+        gc_go(sender, full_buffered);
     }
-    go(closer, full_buffered);
+    gc_go(closer, full_buffered);
     for (int i = 0; i < 5; i++) {
-        go(receiver, full_buffered);
+        gc_go(receiver, full_buffered);
     }
-    run();
+    gc_run();
 
     gc_free(unbuffered);
     gc_free(buffered);

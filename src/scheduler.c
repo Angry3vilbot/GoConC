@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "scheduler.h"
+#include "../include/goconc/scheduler.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@ gc_scheduler* gc_sched_get() {
     return &scheduler;
 }
 
-void run() {
+void gc_run() {
     gc_scheduler* current = gc_sched_get();
     // Check that a goroutine hasn't called run() inside itself
     assert(current->current == NULL);
@@ -76,24 +76,11 @@ void run() {
     }
 }
 
-/// Starts a new goroutine with <code>GC_DEFAULT_STACK_SIZE</code> stack size
-/// @param function the function that runs inside the goroutine
-/// @param arg the argument for said function
-/// @return GC_SUCCESS on success
-/// GC_GOROUTINE_ALLOC_ERROR if the goroutine could not be allocated
-/// GC_STACK_ALLOC_ERROR if the stack could not be allocated
-int go(entry_function function, void *arg) {
-    return go_sized(function, arg, GC_DEFAULT_STACK_SIZE);
+int gc_go(entry_function function, void *arg) {
+    return gc_go_sized(function, arg, GC_DEFAULT_STACK_SIZE);
 }
 
-/// Starts a new goroutine
-/// @param function the function that runs inside the goroutine
-/// @param arg the argument for said function
-/// @param size the stack size to allocate
-/// @return GC_SUCCESS on success
-/// GC_GOROUTINE_ALLOC_ERROR if the goroutine could not be allocated
-/// GC_STACK_ALLOC_ERROR if the stack could not be allocated
-int go_sized(entry_function function, void *arg, size_t size) {
+int gc_go_sized(entry_function function, void *arg, size_t size) {
     gc_scheduler* current = gc_sched_get();
     // Try to allocate a goroutine
     gc_goroutine* goroutine = calloc(1, sizeof(gc_goroutine));
@@ -119,7 +106,6 @@ int go_sized(entry_function function, void *arg, size_t size) {
     return GC_SUCCESS;
 }
 
-/// Pause the currently running goroutine and return back to the scheduler
 void gc_Gosched() {
     gc_scheduler* current = gc_sched_get();
     gc_goroutine* goroutine = current->current;

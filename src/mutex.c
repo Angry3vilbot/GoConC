@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mutex.h"
+#include "../include/goconc/mutex.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,9 +33,6 @@ static gc_mutex_impl *impl(gc_mutex *m) {
     return (gc_mutex_impl *)m;
 }
 
-/// Lock a Mutex Lock
-/// @details Tries to lock the Mutex. If it is already locked, the goroutine is blocked until it becomes available
-/// @param mu The Mutex to lock
 void gc_mutex_lock(gc_mutex* mu) {
     gc_mutex_impl* mi = impl(mu);
     gc_mutex_lock_impl(mi);
@@ -65,10 +62,6 @@ void gc_mutex_lock_impl(gc_mutex_impl* mi) {
     gc_park();
 }
 
-/// Unlock a Mutex Lock
-/// @details Unlocks a locked Mutex. Aborts if the Mutex is already unlocked.
-/// @note A locked Mutex can be unlocked by a different goroutine than the one that locked it.
-/// @param mu The Mutex to unlock
 void gc_mutex_unlock(gc_mutex* mu) {
     gc_mutex_impl* mi = impl(mu);
     gc_mutex_unlock_impl(mi);
@@ -94,10 +87,6 @@ void gc_mutex_unlock_impl(gc_mutex_impl* mi) {
     gc_ready(waiter->goroutine);
 }
 
-/// Try to lock a Mutex Lock and report the result
-/// @note There are very few cases when one would legitimately need to use this.
-/// @param mu The Mutex to try locking
-/// @return <code>true</code> on success, <code>false</code> if it would be blocked
 bool gc_mutex_trylock(gc_mutex* mu) {
     gc_mutex_impl* mi = impl(mu);
     if (mi == NULL) {

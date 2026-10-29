@@ -18,20 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "channel.h"
+#include "../include/goconc/channel.h"
 
 #include "channel_p.h"
 
-/**
-* Make a channel.
-* @details Creates a new channel and allocates memory for it and its buffer (if applicable).
-* @warning You must call @link gc_free @endlink after you finish using the channel (or at the end of the program)
-* to free the memory allocated to the channel, otherwise you'll get a memory leak.
-* @param unit_size The size of one unit of data, e.g. <code>sizeof(int)</code>
-* @param buffer_size The size of the buffer of a buffered channel.
-* Use <code>0</code> for an unbuffered channel
-* @return The created gc_channel on success, <code>nullptr</code> on allocation failure
-*/
 gc_channel* gc_make(size_t unit_size, int buffer_size) {
     // Check that the buffer/unit size is valid
     if (unit_size == 0) {
@@ -63,13 +53,6 @@ gc_channel* gc_make(size_t unit_size, int buffer_size) {
     return chan;
 }
 
-/**
- * Free a channel.
- * @details Frees memory allocated to a channel and its buffer (if applicable).
- * @warning Must be called after you finish using the channel (or at the end of the program)
- * to free the memory allocated to the channel, otherwise you'll get a memory leak.
- * @param chan The channel to free
- */
 void gc_free(gc_channel* chan) {
     if (chan == NULL) {
         // NOOP
@@ -142,22 +125,9 @@ int gc_send_h(gc_channel *chan, void *data, bool should_block) {
     gc_park();
     return waiter.closed ? GC_CHANNEL_CLOSED : GC_CHANNEL_OK;
 }
-/// Send data into the channel
-/// @details Uses direct handoff when possible instead of storing the data in the buffer.
-/// Unbuffered channels only use direct handoff
-/// @param chan the channel to send data into
-/// @param data the data to send into the channel
-/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed
 int gc_send(gc_channel *chan, void *data) {
     return gc_send_h(chan, data, true);
 }
-/// Send data into the channel without blocking
-/// @details Uses direct handoff when possible instead of storing the data in the buffer.
-/// Unbuffered channels only use direct handoff
-/// @param chan the channel to send data into
-/// @param data the data to send into the channel
-/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed,
-/// GC_CHANNEL_WOULD_BLOCK if the send would block
 int gc_try_send(gc_channel *chan, void *data) {
     return gc_send_h(chan, data, false);
 }
@@ -229,27 +199,13 @@ int gc_receive_h(gc_channel *chan, void *data, bool should_block) {
     gc_park();
     return waiter.closed ? GC_CHANNEL_CLOSED : GC_CHANNEL_OK;
 }
-/// Receive data from the channel
-/// @details Directly receives the data into an address in memory.
-/// @param chan the channel to receive data from
-/// @param data the pointer to where to place the data
-/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed
 int gc_receive(gc_channel *chan, void *data) {
     return gc_receive_h(chan, data, true);
 }
-/// Receive data from the channel without blocking
-/// @details Directly receives the data into an address in memory.
-/// @param chan the channel to receive data from
-/// @param data the pointer to where to place the data
-/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed,
-/// GC_CHANNEL_WOULD_BLOCK if the receive would block
 int gc_try_receive(gc_channel *chan, void *data) {
     return gc_receive_h(chan, data, false);
 }
 
-/// Close the channel
-/// @param chan the pointer to the channel to close
-/// @returns GC_CHANNEL_OK on success
 int gc_close(gc_channel *chan) {
     // Closing a null channel is an error
     if (chan == NULL) {

@@ -21,9 +21,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "channel.h"
-#include "scheduler.h"
-#include "select.h"
+#include "goconc.h"
 // Test that select correctly handles a channel getting closed
 
 bool did_close = false;
@@ -62,9 +60,9 @@ void selector(void* arg) {
 int main() {
     gc_channel* chan = gc_make(sizeof(int), 0);
 
-    go(selector, chan);
-    go(closer, chan);
-    run();
+    gc_go(selector, chan);
+    gc_go(closer, chan);
+    gc_run();
     assert(did_close == true);
 
     gc_free(chan);

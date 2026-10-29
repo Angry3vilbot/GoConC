@@ -22,8 +22,8 @@
 
 #include <assert.h>
 
-#include "once.h"
-#include "scheduler.h"
+#include "goconc/once.h"
+#include "goconc/scheduler.h"
 
 int test_value = 0;
 
@@ -42,9 +42,9 @@ int main() {
     gc_once once = GC_ONCE_INIT;
 
     for (int i = 0; i < 10; i++) {
-        go(doer, &once);
+        gc_go(doer, &once);
     }
-    run();
+    gc_run();
 
     gc_once_do(&once, init, nullptr);
 

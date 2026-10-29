@@ -24,9 +24,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "channel.h"
-#include "scheduler.h"
-#include "select.h"
+#include "goconc.h"
 
 void selector(void* arg) {
     gc_channel* channel = arg;
@@ -66,8 +64,8 @@ void selector(void* arg) {
 int main() {
     gc_channel* chan = gc_make(sizeof(int), 0);
 
-    go(selector, chan);
-    run();
+    gc_go(selector, chan);
+    gc_run();
 
     gc_free(chan);
 

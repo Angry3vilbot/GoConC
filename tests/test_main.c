@@ -21,9 +21,9 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "channel.h"
-#include "gc_main.h"
-#include "scheduler.h"
+#include "goconc/channel.h"
+#include "goconc/gc_main.h"
+#include "goconc/scheduler.h"
 // Test that the gc_main implementation works as intended
 
 void sender(void* arg) {
@@ -38,7 +38,7 @@ int actual_main(void* arg) {
     *check = 100;
 
     gc_channel* chan = gc_make(sizeof(int), 0);
-    go(sender, chan);
+    gc_go(sender, chan);
     int received = 0;
     if (gc_receive(chan, &received) == GC_CHANNEL_OK) {
         printf("Data received successfully: %d\n", received);

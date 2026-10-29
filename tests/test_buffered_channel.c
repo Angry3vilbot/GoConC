@@ -24,8 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "channel.h"
-#include "scheduler.h"
+#include "goconc/channel.h"
+#include "goconc/scheduler.h"
 
 void receiver(void* arg) {
     gc_channel* channel = arg;
@@ -54,21 +54,21 @@ int main() {
     // Senders first
     printf("Testing buffered channel of size 3: Senders activated first\n");
     for (int i = 0; i < SENDERS; i++) {
-        go(sender, channel);
+        gc_go(sender, channel);
     }
     for (int i = 0; i < SENDERS; i++) {
-        go(receiver, channel);
+        gc_go(receiver, channel);
     }
-    run();
+    gc_run();
     // Receivers first
     printf("Testing buffered channel of size 3: Receivers activated first\n");
     for (int i = 0; i < SENDERS; i++) {
-        go(receiver, channel);
+        gc_go(receiver, channel);
     }
     for (int i = 0; i < SENDERS; i++) {
-        go(sender, channel);
+        gc_go(sender, channel);
     }
-    run();
+    gc_run();
     gc_free(channel);
     return 0;
 }

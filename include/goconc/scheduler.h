@@ -25,9 +25,30 @@ typedef void (*entry_function)(void *);
 
 constexpr size_t GC_DEFAULT_STACK_SIZE = 64 * 1024; // 64 KB
 
-void run();
-int go(entry_function function, void *arg);
-int go_sized(entry_function function, void *arg, size_t size);
+/// Start the scheduler loop.
+/// @details Runs the scheduler loop until the run queue is emptied.
+/// If the run queue is empty while the goroutine count is above 0, the scheduler considers it a deadlock
+/// and will abort execution of the program.
+void gc_run();
+
+/// Starts a new goroutine with @link GC_DEFAULT_STACK_SIZE @endlink stack size
+/// @param function the function that runs inside the goroutine
+/// @param arg the argument for said function
+/// @return GC_SUCCESS on success
+/// GC_GOROUTINE_ALLOC_ERROR if the goroutine could not be allocated
+/// GC_STACK_ALLOC_ERROR if the stack could not be allocated
+int gc_go(entry_function function, void *arg);
+
+/// Starts a new goroutine
+/// @param function the function that runs inside the goroutine
+/// @param arg the argument for said function
+/// @param size the stack size to allocate
+/// @return GC_SUCCESS on success
+/// GC_GOROUTINE_ALLOC_ERROR if the goroutine could not be allocated
+/// GC_STACK_ALLOC_ERROR if the stack could not be allocated
+int gc_go_sized(entry_function function, void *arg, size_t size);
+
+/// Pause the currently running goroutine and return back to the scheduler
 void gc_Gosched();
 
 // Error Codes

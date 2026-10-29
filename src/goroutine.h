@@ -39,7 +39,6 @@ typedef struct gc_goroutine {
     void *arg;
     struct gc_goroutine *next; // Pointer to the next goroutine in whatever queue this goroutine is in
     struct gc_goroutine *prev; // Pointer to the previous goroutine in whatever queue this goroutine is in
-    //TODO: Add a field for which case won in a select
     void *asan_fake_stack;
 } gc_goroutine;
 

@@ -21,8 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "channel.h"
-#include "scheduler.h"
+#include "goconc/channel.h"
+#include "goconc/scheduler.h"
 // Test that the GoConC_main sublibrary works as intended
 
 void sender(void* arg) {
@@ -36,7 +36,7 @@ int gc_user_main(int argc, char **argv) {
     int retval = 0;
     gc_channel* channel = gc_make(sizeof(int), 0);
 
-    go(sender, channel);
+    gc_go(sender, channel);
 
     if (gc_receive(channel, &retval) != GC_CHANNEL_OK) {
         fprintf(stderr, "Failed to receive from channel\n");

@@ -20,7 +20,13 @@
 
 #ifndef GOCONC_LIBRARY_H
 #define GOCONC_LIBRARY_H
-
-void hello();
+// Umbrella Header for the library
+#include "goconc/channel.h"
+#include "goconc/gc_main.h"
+#include "goconc/mutex.h"
+#include "goconc/once.h"
+#include "goconc/scheduler.h"
+#include "goconc/select.h"
+#include "goconc/waitgroup.h"
 
 #endif // GOCONC_LIBRARY_H

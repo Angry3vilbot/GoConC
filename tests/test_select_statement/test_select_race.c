@@ -21,9 +21,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#include "channel.h"
-#include "scheduler.h"
-#include "select.h"
+#include "goconc.h"
 // Test that only one sender/receiver can send to/receive from a select, the rest get blocked
 
 int send_count = 0;
@@ -81,20 +79,20 @@ void selector(void* arg) {
 int main() {
     gc_channel* chan = gc_make(sizeof(int), 0);
 
-    go(receiver, chan);
-    go(receiver, chan);
-    go(selector, chan);
-    go(sender, chan);
-    run();
+    gc_go(receiver, chan);
+    gc_go(receiver, chan);
+    gc_go(selector, chan);
+    gc_go(sender, chan);
+    gc_run();
 
     assert(case_count == 1);
     assert(send_count == recv_count);
 
-    go(sender, chan);
-    go(sender, chan);
-    go(selector, chan);
-    go(receiver, chan);
-    run();
+    gc_go(sender, chan);
+    gc_go(sender, chan);
+    gc_go(selector, chan);
+    gc_go(receiver, chan);
+    gc_run();
 
     assert(case_count == 2);
     assert(send_count == recv_count);

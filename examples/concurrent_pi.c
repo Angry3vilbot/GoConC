@@ -27,8 +27,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "channel.h"
-#include "scheduler.h"
+#include "../include/goconc/channel.h"
+#include "../include/goconc/scheduler.h"
 
 struct arg_struct {
     gc_channel* chan;
@@ -51,7 +51,7 @@ double pi(int n) {
         args[k].chan = channel;
         args[k].value = k;
 
-        go(term, &args[k]);
+        gc_go(term, &args[k]);
     }
 
     double f = 3.0;

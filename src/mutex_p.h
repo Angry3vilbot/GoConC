@@ -22,7 +22,7 @@
 #define GOCONC_MUTEX_P_H
 #include "goroutine.h"
 #include "waiter.h"
-#include "mutex.h"
+#include "../include/goconc/mutex.h"
 
 typedef struct gc_mutex_impl {
     gc_goroutine* owner;

@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 
-#include "gc_main.h"
+#include "../include/goconc/gc_main.h"
 
 int gc_user_main(int argc, char **argv);
 

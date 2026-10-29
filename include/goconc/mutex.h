@@ -18,23 +18,35 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef GOCONC_ONCE_H
-#define GOCONC_ONCE_H
-#define GC_ONCE_SIZE 48 // The amount of bytes reserved for the Once implementation (with headroom)
+#ifndef GOCONC_MUTEX_H
+#define GOCONC_MUTEX_H
+#define GC_MUTEX_SIZE 32  // The amount of bytes reserved for the mutex implementation (with headroom)
+#include <stddef.h>
 
-typedef void (*entry_function)(void *);
-
-/// Once
-/// @details Makes sure that the given function only ever runs once
+/// Mutex Lock
 /// @warning Do NOT copy/pass by value, it will corrupt the wait queue
-typedef struct gc_once {
+typedef struct gc_mutex {
     // Byte-Aligned reserved field for the opaque implementation
-    _Alignas(16) unsigned char opaque[GC_ONCE_SIZE];
-} gc_once;
+    _Alignas(16) unsigned char opaque[GC_MUTEX_SIZE];
+} gc_mutex;
 
-void gc_once_do(gc_once* once, entry_function func, void *arg);
+/// Lock a Mutex Lock
+/// @details Tries to lock the Mutex. If it is already locked, the goroutine is blocked until it becomes available
+/// @param mu The Mutex to lock
+void gc_mutex_lock(gc_mutex* mu);
 
+/// Unlock a Mutex Lock
+/// @details Unlocks a locked Mutex. Aborts if the Mutex is already unlocked.
+/// @note A locked Mutex can be unlocked by a different goroutine than the one that locked it.
+/// @param mu The Mutex to unlock
+void gc_mutex_unlock(gc_mutex* mu);
+
+/// Try to lock a Mutex Lock and report the result
+/// @note There are very few cases when one would legitimately need to use this.
+/// @param mu The Mutex to try locking
+/// @return <code>true</code> on success, <code>false</code> if it would be blocked
+bool gc_mutex_trylock(gc_mutex* mu);
 // Initializer for readability
-#define GC_ONCE_INIT {{0}}
+#define GC_MUTEX_INIT {{0}}
 
-#endif //GOCONC_ONCE_H
+#endif //GOCONC_MUTEX_H

@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, cc: gcc-13,   build: Debug }
+          - { os: ubuntu-22.04, cc: gcc-13,   build: Release }
+          - { os: ubuntu-24.04, cc: clang-18, build: Debug }
+          - { os: ubuntu-24.04, cc: gcc-13,   build: Debug, sanitize: ON }
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.cc == 'gcc-13' && 'gcc-13' || 'clang-18' }}
+
+      - name: Configure
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+          -DGOCONC_SANITIZE=${{ matrix.sanitize || 'OFF' }}
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Install GoConC
+        run: cmake --install build --prefix "$PWD/_install"
+
+      - name: Test installed package
+        run: |
+          cmake -S tests/consumer -B build-consumer \
+            -DCMAKE_PREFIX_PATH="$PWD/_install"
+          
+          cmake --build build-consumer
+          ./build-consumer/consumer
+
+      - name: Test FetchContent integration
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # Test fetching the actual release tag.
+            cmake -S tests/consumer-fetch -B build-fetch \
+              -DGOCONC_TEST_TAG="$GITHUB_REF_NAME" \
+              -DFETCHCONTENT_FULLY_DISCONNECTED=OFF \
+              -DGOCONC_BUILD_TESTS=OFF
+          else
+            # On PRs, test against the source currently checked out by CI.
+            cmake -S tests/consumer-fetch -B build-fetch \
+              -DGOCONC_TEST_TAG="$GITHUB_SHA" \
+              -DFETCHCONTENT_SOURCE_DIR_GOCONC="$GITHUB_WORKSPACE" \
+              -DGOCONC_BUILD_TESTS=OFF
+          fi
+          
+          cmake --build build-fetch
+          ./build-fetch/consumer

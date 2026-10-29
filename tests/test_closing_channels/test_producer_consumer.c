@@ -24,8 +24,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "channel.h"
-#include "scheduler.h"
+#include "goconc/channel.h"
+#include "goconc/scheduler.h"
 
 void producer(void* arg) {
     gc_channel* channel = arg;
@@ -52,9 +52,9 @@ void consumer(void* arg) {
 
 int main() {
     gc_channel* channel = gc_make(sizeof(int), 10);
-    go(producer, channel);
-    go(consumer, channel);
-    run();
+    gc_go(producer, channel);
+    gc_go(consumer, channel);
+    gc_run();
 
     gc_free(channel);
     return 0;

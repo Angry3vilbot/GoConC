@@ -18,16 +18,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef GOCONC_WAITGROUP_H
-#define GOCONC_WAITGROUP_H
+#ifndef GOCONC_ONCE_H
+#define GOCONC_ONCE_H
+#define GC_ONCE_SIZE 48 // The amount of bytes reserved for the Once implementation (with headroom)
 
 typedef void (*entry_function)(void *);
-typedef struct gc_waitgroup gc_waitgroup;
 
-gc_waitgroup* gc_wg_make();
-void gc_wg_free(gc_waitgroup* wg);
-void gc_wg_add(gc_waitgroup* wg, long delta);
-void gc_wg_done(gc_waitgroup* wg);
-void gc_wg_wait(gc_waitgroup* wg);
+/// Once
+/// @details Makes sure that the given function only ever runs once
+/// @warning Do NOT copy/pass by value, it will corrupt the wait queue
+typedef struct gc_once {
+    // Byte-Aligned reserved field for the opaque implementation
+    _Alignas(16) unsigned char opaque[GC_ONCE_SIZE];
+} gc_once;
 
-#endif //GOCONC_WAITGROUP_H
+/// Call the given function only once
+/// @details Calls <code>func</code> if and only if @link gc_once_do @endlink is being called
+/// for the first time with the given instance of <code>once</code>. All other calls made with the
+/// same instance will return without calling their <code>func</code>.
+/// @warning If <code>func</code> calls @link gc_once_do @endlink, you will get a deadlock.
+/// @param once The pointer to the shared Once
+/// @param func The function to run only once
+/// @param arg The argument for the function
+void gc_once_do(gc_once* once, entry_function func, void *arg);
+
+// Initializer for readability
+#define GC_ONCE_INIT {{0}}
+
+#endif //GOCONC_ONCE_H

@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "once.h"
+#include "../include/goconc/once.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,14 +33,6 @@ static gc_once_impl *impl(gc_once *once) {
     return (gc_once_impl *)once;
 }
 
-/// Call the given function only once
-/// @details Calls <code>func</code> if and only if @link gc_once_do @endlink is being called
-/// for the first time with the given instance of <code>once</code>. All other calls made with the
-/// same instance will return without calling their <code>func</code>.
-/// @warning If <code>func</code> calls @link gc_once_do @endlink, you will get a deadlock.
-/// @param once The pointer to the shared Once
-/// @param func The function to run only once
-/// @param arg The argument for the function
 void gc_once_do(gc_once* once, entry_function func, void *arg) {
     gc_once_impl *once_impl = impl(once);
     if (once_impl == NULL) {

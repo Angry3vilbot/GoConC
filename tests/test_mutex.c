@@ -22,8 +22,8 @@
 
 #include <assert.h>
 
-#include "mutex.h"
-#include "scheduler.h"
+#include "goconc/mutex.h"
+#include "goconc/scheduler.h"
 
 int shared_counter = 0;
 
@@ -44,9 +44,9 @@ int main() {
     gc_mutex mu = GC_MUTEX_INIT;
 
     for (int i = 0; i < 10; i++) {
-        go(worker, &mu);
+        gc_go(worker, &mu);
     }
-    run();
+    gc_run();
 
     assert(shared_counter == 10);
     return 0;

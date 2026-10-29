@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 
-#include "scheduler.h"
+#include "goconc/scheduler.h"
 // Test that yielding with gc_Gosched works as intended
 // Expected output: A0 B0 C0 A1 B1 C1 A2 B2 C2
 
@@ -47,10 +47,10 @@ void print_C(void* args) {
 }
 
 int main() {
-    go(print_A, nullptr);
-    go(print_B, nullptr);
-    go(print_C, nullptr);
-    run();
+    gc_go(print_A, nullptr);
+    gc_go(print_B, nullptr);
+    gc_go(print_C, nullptr);
+    gc_run();
 
     return 0;
 }
