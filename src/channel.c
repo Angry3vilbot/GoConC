@@ -87,16 +87,18 @@ void gc_free(gc_channel* chan) {
     }
 }
 
-/// Send data into the channel
+/// Handle sending data into the channel
 /// @details Uses direct handoff when possible instead of storing the data in the buffer.
 /// Unbuffered channels only use direct handoff
 /// @param chan the channel to send data into
 /// @param data the data to send into the channel
-/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed
-int gc_send(gc_channel *chan, void *data) {
+/// @param should_block whether or not the receive is blocking
+/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed,
+/// GC_CHANNEL_WOULD_BLOCK if the send would block with <code>should_block == false</code>
+int gc_send_h(gc_channel *chan, void *data, bool should_block) {
     // Sends to a nullptr are blocked forever
     if (chan == NULL) {
-        // TODO: Add a check for a non-blocking send (Select)
+        if (!should_block) return GC_CHANNEL_WOULD_BLOCK;
         gc_park();
         // We should never return here
         fprintf(stderr, "GoConc Fatal Error: Resumed a goroutine that sent on a null channel");
@@ -108,12 +110,14 @@ int gc_send(gc_channel *chan, void *data) {
     }
     // Check if there are any receivers available for a direct handoff
     if (!gc_wait_queue_isEmpty(&chan->receivers)) {
-        // Directly transfer the data to the receiver
-        gc_waiter* receiver = gc_wait_queue_dequeue(&chan->receivers);
-        memcpy(receiver->data, data, chan->unit_size);
-        // Ready the blocked receiver
-        gc_ready(receiver->goroutine);
-        return GC_CHANNEL_OK;
+        gc_waiter* receiver = gc_wait_queue_dequeue_claimed(&chan->receivers);
+        if (receiver != nullptr) {
+            // Directly transfer the data to the receiver
+            memcpy(receiver->data, data, chan->unit_size);
+            // Ready the blocked receiver
+            gc_ready(receiver->goroutine);
+            return GC_CHANNEL_OK;
+        }
     }
     // If there is no receiver, but there is room in the buffer, copy the data into the buffer
     if (chan->count < chan->buffer_size) {
@@ -124,6 +128,7 @@ int gc_send(gc_channel *chan, void *data) {
         return GC_CHANNEL_OK;
     }
     // If there are no receivers, and there's no room in the buffer/channel is unbuffered, enqueue and block
+    if (!should_block) return GC_CHANNEL_WOULD_BLOCK;
     // Create a waiter
     gc_scheduler* sched = gc_sched_get();
     gc_waiter waiter = {
@@ -137,16 +142,38 @@ int gc_send(gc_channel *chan, void *data) {
     gc_park();
     return waiter.closed ? GC_CHANNEL_CLOSED : GC_CHANNEL_OK;
 }
+/// Send data into the channel
+/// @details Uses direct handoff when possible instead of storing the data in the buffer.
+/// Unbuffered channels only use direct handoff
+/// @param chan the channel to send data into
+/// @param data the data to send into the channel
+/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed
+int gc_send(gc_channel *chan, void *data) {
+    return gc_send_h(chan, data, true);
+}
+/// Send data into the channel without blocking
+/// @details Uses direct handoff when possible instead of storing the data in the buffer.
+/// Unbuffered channels only use direct handoff
+/// @param chan the channel to send data into
+/// @param data the data to send into the channel
+/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed,
+/// GC_CHANNEL_WOULD_BLOCK if the send would block
+int gc_try_send(gc_channel *chan, void *data) {
+    return gc_send_h(chan, data, false);
+}
 
-/// Receive data from the channel
+
+/// Handle receiving data from the channel
 /// @details Directly receives the data into an address in memory.
 /// @param chan the channel to receive data from
 /// @param data the pointer to where to place the data
-/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed
-int gc_receive(gc_channel *chan, void *data) {
+/// @param should_block whether or not the receive is blocking
+/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed,
+/// GC_CHANNEL_WOULD_BLOCK if the receive would block with <code>should_block == false</code>
+int gc_receive_h(gc_channel *chan, void *data, bool should_block) {
     // Receives from a nullptr are blocked forever
     if (chan == NULL) {
-        // TODO: Add a check for a non-blocking receive (Select)
+        if (!should_block) return GC_CHANNEL_WOULD_BLOCK;
         gc_park();
         // We should never return here
         fprintf(stderr, "GoConc Fatal Error: Resumed a goroutine that received from a null channel");
@@ -172,11 +199,13 @@ int gc_receive(gc_channel *chan, void *data) {
     }
     // Check if there are any senders available for a direct handoff
     if (!gc_wait_queue_isEmpty(&chan->senders)) {
-        gc_waiter* sender = gc_wait_queue_dequeue(&chan->senders);
-        memcpy(data, sender->data, chan->unit_size);
-        // Ready the blocked sender
-        gc_ready(sender->goroutine);
-        return GC_CHANNEL_OK;
+        gc_waiter* sender = gc_wait_queue_dequeue_claimed(&chan->senders);
+        if (sender != nullptr) {
+            memcpy(data, sender->data, chan->unit_size);
+            // Ready the blocked sender
+            gc_ready(sender->goroutine);
+            return GC_CHANNEL_OK;
+        }
     }
     // If the channel is closed, zero the data if needed and return
     if (chan->closed) {
@@ -186,6 +215,7 @@ int gc_receive(gc_channel *chan, void *data) {
         return GC_CHANNEL_CLOSED;
     }
     // If there are no senders, and there's no room in the buffer/channel is unbuffered, enqueue and block
+    if (!should_block) return GC_CHANNEL_WOULD_BLOCK;
     // Create a waiter
     gc_scheduler* sched = gc_sched_get();
     gc_waiter waiter = {
@@ -198,6 +228,23 @@ int gc_receive(gc_channel *chan, void *data) {
     gc_wait_queue_enqueue(&chan->receivers, &waiter);
     gc_park();
     return waiter.closed ? GC_CHANNEL_CLOSED : GC_CHANNEL_OK;
+}
+/// Receive data from the channel
+/// @details Directly receives the data into an address in memory.
+/// @param chan the channel to receive data from
+/// @param data the pointer to where to place the data
+/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed
+int gc_receive(gc_channel *chan, void *data) {
+    return gc_receive_h(chan, data, true);
+}
+/// Receive data from the channel without blocking
+/// @details Directly receives the data into an address in memory.
+/// @param chan the channel to receive data from
+/// @param data the pointer to where to place the data
+/// @return GC_CHANNEL_OK on success, GC_CHANNEL_CLOSED if the channel was closed,
+/// GC_CHANNEL_WOULD_BLOCK if the receive would block
+int gc_try_receive(gc_channel *chan, void *data) {
+    return gc_receive_h(chan, data, false);
 }
 
 /// Close the channel
@@ -219,15 +266,33 @@ int gc_close(gc_channel *chan) {
     // Wake all blocked receivers
     while (!gc_wait_queue_isEmpty(&chan->receivers)) {
         gc_waiter* receiver = gc_wait_queue_dequeue(&chan->receivers);
+        // Check if the waiter is stale
+        bool is_stale = gc_waiter_is_stale(receiver);
+        // Skip it if it is
+        if (is_stale) {
+            continue;
+        }
         // Zero the data buffer
         memset(receiver->data, 0, chan->unit_size);
         receiver->closed = true;
+        if (receiver->select_state != NULL) {
+            receiver->select_state->closed = true;
+        }
         gc_ready(receiver->goroutine);
     }
     // Wake all blocked senders, they'll return GC_CHANNEL_CLOSED upon waking
     while (!gc_wait_queue_isEmpty(&chan->senders)) {
         gc_waiter* sender = gc_wait_queue_dequeue(&chan->senders);
+        // Check if the waiter is stale
+        bool is_stale = gc_waiter_is_stale(sender);
+        // Skip it if it is
+        if (is_stale) {
+            continue;
+        }
         sender->closed = true;
+        if (sender->select_state != NULL) {
+            sender->select_state->closed = true;
+        }
         gc_ready(sender->goroutine);
     }
 

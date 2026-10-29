@@ -26,13 +26,20 @@ typedef enum {
     GC_WAITER_RECEIVE,
 } GC_WAITER_DIRECTION;
 
+typedef struct gc_select_state {
+    int index;
+    bool closed;
+} gc_select_state;
+
 typedef struct gc_waiter {
     struct gc_goroutine *goroutine;
     struct gc_waiter *next;
     bool closed;
     void *data;
     GC_WAITER_DIRECTION direction;
-    // TODO: Add fields related to select
+    int select_case_index;
+    gc_select_state *select_state;
+    bool queued;
 } gc_waiter;
 
 typedef struct gc_wait_queue {
@@ -44,5 +51,8 @@ void gc_wait_queue_init(gc_wait_queue *queue);
 bool gc_wait_queue_isEmpty(gc_wait_queue *queue);
 void gc_wait_queue_enqueue(gc_wait_queue *queue, gc_waiter *waiter);
 gc_waiter* gc_wait_queue_dequeue(gc_wait_queue *queue);
+bool gc_waiter_is_stale(gc_waiter *waiter);
+gc_waiter* gc_wait_queue_dequeue_claimed(gc_wait_queue *queue);
+void gc_wait_queue_remove(gc_wait_queue *queue, gc_waiter *waiter);
 
 #endif //GOCONC_QUEUE_H

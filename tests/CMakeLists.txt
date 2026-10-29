@@ -21,6 +21,8 @@ foreach (name IN LISTS tests)
     add_test(NAME "${name}" COMMAND "test_${name}")
 endforeach ()
 
+add_subdirectory(test_select_statement)
+
 add_executable(test_context_registers
         test_context_registers/test_context_registers.c test_context_registers/check_registers.S)
 add_executable(test_closing_channels test_closing_channels/test_closing_channels.c)

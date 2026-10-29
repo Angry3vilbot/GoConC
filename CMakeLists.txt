@@ -36,6 +36,7 @@ add_library(GoConC STATIC
         src/mutex.c
         src/once.c
         src/gc_main.c
+        src/select.c
         ${GOCONC_ARCH_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
 
