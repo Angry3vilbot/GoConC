@@ -21,7 +21,7 @@ include(FetchContent)
 
 FetchContent_Declare(GoConC
     GIT_REPOSITORY https://github.com/Angry3vilbot/GoConC.git
-    GIT_TAG v0.1.0
+    GIT_TAG 0.1.0
 )
 
 FetchContent_MakeAvailable(GoConC)
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 }
 ```
 ### 4. Channels
-Channels are a way for goroutines to pass values between one another. They work similarly to how Go's channels work. Note however, that you need to pass a pointer to data in order to send/receive data.
+Channels are a way for goroutines to pass values between one another. They work similarly to how Go's channels work. Note, however, that you need to pass a pointer to data in order to send/receive data.
 ```C
 #include <stdio.h>
 #include <stdlib.h>

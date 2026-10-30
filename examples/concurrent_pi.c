@@ -27,8 +27,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../include/goconc/channel.h"
-#include "../include/goconc/scheduler.h"
+#include "goconc/channel.h"
+#include "goconc/scheduler.h"
 
 struct arg_struct {
     gc_channel* chan;
