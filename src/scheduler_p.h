@@ -24,6 +24,7 @@
 #include "run_queue.h"
 #include "goroutine.h"
 #include "context.h"
+#include "timer_p.h"
 
 typedef struct {
     gc_goroutine *current;
@@ -31,6 +32,8 @@ typedef struct {
     // Queue
     int count;
     gc_run_queue run_queue;
+    // Timers
+    gc_timer_heap timer_heap;
     // ASan fiber parameters
     void  *asan_fake_stack;
     const void  *stack_bottom;

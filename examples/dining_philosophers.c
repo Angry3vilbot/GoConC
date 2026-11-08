@@ -64,9 +64,7 @@ void eat(void* arg) {
     printf("%d took fork %d\n", args->index + 1, (args->index + 1) % args->number_of_threads + 1);
 
     printf("%d eating...\n", args->index + 1);
-    /* TODO: Sleep goes here once implemented
-             For now, just yield so that it's not just a plain sequence */
-    gc_Gosched();
+    gc_sleep(5 * GC_SECOND);
 
     gc_receive(args->forks[args->index], &dummy);
     gc_receive(args->forks[(args->index + 1) % args->number_of_threads], &dummy);
@@ -80,7 +78,8 @@ int gc_user_main() {
     gc_waitgroup* wait_group = gc_wg_make();
     int numberOfThreads = 5;
     // Empty struct has a size of 0, which is not allowed.
-    // TODO: Maybe allow unit size of 0? Don't think it can cause issues.
+    // Allowing size 0 wouldn't change much since you cannot memcpy a nullptr, and passing in an empty struct
+    // is more trouble than it is worth.
     gc_channel* foot_man = gc_make(sizeof(int), numberOfThreads - 1);
     gc_channel* forks[numberOfThreads];
 

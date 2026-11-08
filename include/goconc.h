@@ -28,5 +28,6 @@
 #include "goconc/scheduler.h"
 #include "goconc/select.h"
 #include "goconc/waitgroup.h"
+#include "goconc/timer.h"
 
 #endif // GOCONC_LIBRARY_H

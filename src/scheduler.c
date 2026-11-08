@@ -23,9 +23,31 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <time.h>
 
 #include "sanitizer_p.h"
 #include "scheduler_p.h"
+
+static struct timespec ns_to_timespec(gc_mono_time ns) {
+    struct timespec ts;
+    ts.tv_sec  = (time_t)(ns / 1000000000LL);
+    ts.tv_nsec = (long)(ns % 1000000000LL);
+    return ts;
+}
+
+// Sleep until the given monotonic time. May return early.
+static void gc_sleep_until(gc_mono_time ns) {
+#if defined(__linux__)
+    struct timespec ts = ns_to_timespec(ns);
+    clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, nullptr);
+#else
+    gc_mono_time now = gc_monotonic_time_now();
+    if (ns <= now) return;
+    struct timespec ts = ns_to_timespec(ns - now);
+    nanosleep(&ts, nullptr);
+#endif
+}
 
 // Static, Single-Threaded Scheduler
 static gc_scheduler scheduler;
@@ -37,9 +59,21 @@ gc_scheduler* gc_sched_get() {
 void gc_run() {
     gc_scheduler* current = gc_sched_get();
     // Check that a goroutine hasn't called run() inside itself
-    assert(current->current == NULL);
+    if (current->current != NULL) {
+        fprintf(stderr, "GoConC Fatal Error: Scheduler loop called within a goroutine!\n");
+        abort();
+    }
     // Scheduler loop
     while (true) {
+        // If we have any timers, read the current time and fire any expired ones
+        if (current->timer_heap.size > 0) {
+            gc_mono_time now = gc_monotonic_time_now();
+            while (current->timer_heap.size > 0 && current->timer_heap.heap[0]->when <= now) {
+                gc_timer* timer = gc_timer_heap_pop(&current->timer_heap);
+                timer->function(timer, now);
+            }
+        }
+
         // Check if the queue has any goroutines
         if (!gc_run_queue_isEmpty(&current->run_queue)) {
             // Dequeue a goroutine from the queue
@@ -64,13 +98,19 @@ void gc_run() {
             }
         }
         else {
+            // If the timer heap is not empty, sleep until the first deadline
+            if (current->timer_heap.size > 0) {
+                gc_mono_time when = current->timer_heap.heap[0]->when;
+                gc_sleep_until(when);
+                // Restart the loop after waking up
+                continue;
+            }
             if (current->count == 0) {
                 // All goroutines exited
                 return;
             }
             // All goroutines are asleep, deadlock
             fprintf(stderr, "GoConC Fatal Error: all goroutines are asleep - deadlock!\n");
-            // For now, abort, later on sleep until the next even and actually check for a deadlock
             abort();
         }
     }
