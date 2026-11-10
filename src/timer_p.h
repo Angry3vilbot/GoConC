@@ -28,6 +28,7 @@
 #include "goroutine.h"
 #include "goconc/timer.h"
 #include "goconc/channel.h"
+#include "goconc/datetime.h"
 
 typedef enum gc_timer_state {
     GC_TIMER_HEAPED,

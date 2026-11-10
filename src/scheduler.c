@@ -23,7 +23,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <time.h>
 
 #include "sanitizer_p.h"

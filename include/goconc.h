@@ -29,5 +29,6 @@
 #include "goconc/select.h"
 #include "goconc/waitgroup.h"
 #include "goconc/timer.h"
+#include "goconc/datetime.h"
 
 #endif // GOCONC_LIBRARY_H

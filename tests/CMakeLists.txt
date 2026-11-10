@@ -9,6 +9,7 @@ set(
         mutex
         once
         main
+        datetime
 )
 
 foreach (name IN LISTS tests)

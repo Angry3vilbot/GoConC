@@ -20,7 +20,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "goconc/scheduler.h"
 #include "goconc/timer.h"
@@ -28,34 +27,6 @@
 #include "timer_p.h"
 #include "scheduler_p.h"
 #include "channel_p.h"
-
-/// Type-safe addition of a duration to a monotonic timestamp
-/// Clamps the result to prevent overflow/underflow
-/// @param time The monotonic timestamp
-/// @param duration The duration to add to the timestamp
-/// @return The resulting monotonic timestamp
-gc_mono_time gc_monotonic_time_add(gc_mono_time time, gc_duration duration) {
-    if (duration >= 0) {
-        // Clamp
-        return (time <= UINT64_MAX - duration) ? time + duration : UINT64_MAX;
-    }
-    // Clamp
-    return (time >= -UINT64_MAX - duration) ? time + duration : -UINT64_MAX;
-}
-
-/// Type-safe addition of a duration to a wall clock timestamp
-/// Clamps the result to prevent overflow/underflow
-/// @param time The wall clock timestamp
-/// @param duration The duration to add to the timestamp
-/// @return The resulting wall clock timestamp
-gc_wall_time gc_wall_time_add(gc_wall_time time, gc_duration duration) {
-    if (duration >= 0) {
-        // Clamp
-        return (time <= UINT64_MAX - duration) ? time + duration : UINT64_MAX;
-    }
-    // Clamp
-    return (time >= -UINT64_MAX - duration) ? time + duration : -UINT64_MAX;
-}
 
 /// Sleep timer callback function
 /// Used to wake the goroutine from a timed sleep
@@ -97,22 +68,6 @@ void gc_timer_channel_callback(gc_timer* t, gc_mono_time now) {
     t->state = GC_TIMER_FIRED;
     // If it's owned by gc_after, free just the timer, so the user can still read from the channel
     if (t->heap_allocated) free(t);
-}
-
-gc_mono_time gc_monotonic_time_now() {
-    struct timespec ts;
-    int retv = clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    if (retv == -1) return -1;
-    return (int64_t)ts.tv_sec * 1000000000 + (int64_t)ts.tv_nsec;
-}
-
-gc_wall_time gc_wall_clock_time_now() {
-    struct timespec ts;
-    int retv = clock_gettime(CLOCK_REALTIME, &ts);
-
-    if (retv == -1) return -1;
-    return (int64_t)ts.tv_sec * 1000000000 + (int64_t)ts.tv_nsec;
 }
 
 void gc_sleep(gc_duration duration) {

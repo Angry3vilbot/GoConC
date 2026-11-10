@@ -21,41 +21,12 @@
 #ifndef GOCONC_TIMER_H
 #define GOCONC_TIMER_H
 
-#include <stdint.h>
 #include <stdbool.h>
 
+#include "datetime.h"
 #include "goconc/channel.h"
 
-/// Time in nanoseconds between two points.
-typedef int64_t gc_duration;
-/// Monotonic time in nanoseconds.
-typedef uint64_t gc_mono_time;
-/// Wall clock time in nanoseconds since Unix epoch.
-typedef uint64_t gc_wall_time;
-
-/**
- * @defgroup gc_durations Common Durations
- * @brief Common time duration constants.
- * @details Similar to Go, divide/multiply by the constant to count/convert the number of units.
- * @{
- */
-#define GC_NANOSECOND ((gc_duration)1)
-#define GC_MICROSECOND (GC_NANOSECOND * 1000)
-#define GC_MILLISECOND (GC_MICROSECOND * 1000)
-#define GC_SECOND (GC_MILLISECOND * 1000)
-#define GC_MINUTE (GC_SECOND * 60)
-#define GC_HOUR (GC_MINUTE * 60)
-/** @} */
-
 typedef struct gc_timer gc_timer;
-
-/// Get the current monotonic timestamp
-/// @return Monotonic time in nanoseconds.
-gc_mono_time gc_monotonic_time_now();
-
-/// Get the current wall clock timestamp
-/// @return Wall Clock time in nanoseconds since Unix epoch.
-gc_wall_time gc_wall_clock_time_now();
 
 /// Pauses the current goroutine for at least the given duration.
 /// @note A negative/zero duration will simply yield to the scheduler without waiting.
