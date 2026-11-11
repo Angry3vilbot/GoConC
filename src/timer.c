@@ -292,3 +292,14 @@ int gc_ticker_reset(gc_timer* ticker, gc_duration period) {
     gc_timer_heap_push(&scheduler->timer_heap, ticker);
     return GC_INACTIVE_TICKER_RESET;
 }
+
+int gc_ticker_close(gc_timer* ticker) {
+    if (ticker == nullptr) {
+        fprintf(stderr, "GoConC Fatal Error: Close called on a null ticker.\n");
+        abort();
+    }
+    // Stop the ticker
+    gc_ticker_stop(ticker);
+    // Close the channel
+    return gc_close(ticker->target.channel);
+}

@@ -119,6 +119,14 @@ bool gc_ticker_stop(gc_timer* ticker);
 /// (in that case, the timer remains unchanged).
 int gc_ticker_reset(gc_timer* ticker, gc_duration period);
 
+/// Close a ticker.
+/// Closes a ticker by closing its channel. Used to notify goroutines that wait on the ticker's channel
+/// in a loop to stop waiting. Required if you will be freeing the ticker afterwards.
+/// @warning This operation is permanent, and leaves the ticker unusable. Use it only when freeing.
+/// @param ticker The ticker to close
+/// @return <code>GC_CHANNEL_OK</code> on success
+int gc_ticker_close(gc_timer* ticker);
+
 // Status Codes
 constexpr int GC_TIMER_HEAP_ALLOC_ERROR = 0;
 constexpr int GC_ACTIVE_TIMER_RESET = 1;
