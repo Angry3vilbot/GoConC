@@ -29,11 +29,11 @@ typedef void (*entry_function)(void *);
 
 typedef struct {
     uintptr_t *stack_pointer;
-} gc_context;
+} gc_cpu_context;
 
-void ctx_switch(gc_context *from, gc_context *to);
-void ctx_make(gc_context *ctx, void *stack_base, size_t stack_size, entry_function entry, void *arg);
+void ctx_switch(gc_cpu_context *from, gc_cpu_context *to);
+void ctx_make(gc_cpu_context *ctx, void *stack_base, size_t stack_size, entry_function entry, void *arg);
 // Assert that the stack pointer is at the top of the struct, mandatory for the assembly code to work
-static_assert(offsetof(gc_context, stack_pointer) == 0);
+static_assert(offsetof(gc_cpu_context, stack_pointer) == 0);
 
 #endif //GOCONC_CONTEXT_H

@@ -26,8 +26,8 @@
 
 static gc_stack test_stack;
 
-static gc_context main_ctx;
-static gc_context test_ctx;
+static gc_cpu_context main_ctx;
+static gc_cpu_context test_ctx;
 
 void test_func(void* p) {
     int *someArg = p;

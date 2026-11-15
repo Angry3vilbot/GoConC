@@ -42,6 +42,7 @@ add_library(GoConC STATIC
         src/timer.c
         src/timer_heap.c
         src/datetime.c
+        src/gc_context.c
         ${GOCONC_ARCH_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
 target_compile_features(GoConC PUBLIC c_std_23)

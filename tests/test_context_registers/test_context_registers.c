@@ -25,11 +25,11 @@
 
 static _Alignas(16) char test_stack[64 * 1024];
 
-static gc_context main_ctx;
-static gc_context test_ctx;
+static gc_cpu_context main_ctx;
+static gc_cpu_context test_ctx;
 static int fails = 0;
 
-int check_registers(gc_context *from, gc_context *to, uintptr_t base);
+int check_registers(gc_cpu_context *from, gc_cpu_context *to, uintptr_t base);
 
 void test_func(void* p) {
     for (int base = 1; base <= 5; base++) {

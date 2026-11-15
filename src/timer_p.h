@@ -49,15 +49,17 @@ typedef struct gc_timer {
     size_t heap_index;
     // A pointer to either a sleeping goroutine or a channel.
     gc_timer_target target;
+    // gc_after_function arguments
+    entry_function user_function;
+    void* user_arg;
 
     gc_mono_time when;
     // If greater than 0, it's a periodic timer that fires every period.
     int64_t period;
     timer_function function;
     uint64_t seq;
-    // Whether the timer is heap-allocated or not. A sleep timer lives in the stack, other timers are allocated
-    // and must be freed.
-    bool heap_allocated;
+    // If the timer is owned by gc_after, it should be freed after it fires
+    bool is_after_timer;
 } gc_timer;
 
 typedef struct gc_timer_heap {
@@ -76,5 +78,7 @@ gc_timer* gc_timer_heap_peek(gc_timer_heap* timer_heap);
 void gc_timer_heap_remove(gc_timer_heap* timer_heap, gc_timer* t);
 void gc_timer_heap_sift_up(gc_timer_heap* timer_heap, gc_timer* t);
 void gc_timer_heap_sift_down(gc_timer_heap* timer_heap, gc_timer* t);
+gc_timer* gc_timer_make_at(gc_mono_time when, timer_function func);
+gc_timer* gc_context_after(gc_mono_time when, entry_function function, void* arg);
 
 #endif //GOCONC_TIMER_P_H

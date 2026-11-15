@@ -25,6 +25,7 @@
 
 #include "datetime.h"
 #include "goconc/channel.h"
+#include "goconc/scheduler.h"
 
 typedef struct gc_timer gc_timer;
 
@@ -38,6 +39,14 @@ void gc_sleep(gc_duration duration);
 /// @param duration The amount of time to wait before sending into the returned channel.
 /// @return The pointer to the channel that will receive a value from this.
 gc_channel* gc_after(gc_duration duration);
+
+/// Waits for the specified duration before calling the provided function with the given argument as a goroutine.
+/// Returns a timer that can be cancelled. It does not have a channel.
+/// @param duration The amount of time to wait before calling the function.
+/// @param function The function to call.
+/// @param arg The function's argument.
+/// @return The created gc_timer on success, <code>nullptr</code> on allocation failure.
+gc_timer* gc_after_function(gc_duration duration, entry_function function, void* arg);
 
 /**
 * Make a timer.

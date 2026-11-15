@@ -213,7 +213,7 @@ void gc_ready(gc_goroutine *goroutine) {
 }
 
 /// Switch contexts with ASan fiber calls
-static void gc_switch(gc_context *from, gc_context *to,
+static void gc_switch(gc_cpu_context *from, gc_cpu_context *to,
     void **from_fake, const void *to_bottom, size_t to_size) {
     GC_ASAN_START(from_fake, to_bottom, to_size);
     ctx_switch(from, to);

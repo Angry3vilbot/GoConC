@@ -98,13 +98,16 @@ bool gc_timer_heap_push(gc_timer_heap* timer_heap, gc_timer* t) {
 gc_timer* gc_timer_heap_pop(gc_timer_heap* timer_heap) {
     // Get the timer at the root of the heap
     gc_timer* t = timer_heap->heap[0];
-    // Remove the timer from the heap
-    // Place the last element in the heap at the root
-    timer_heap->heap[0] = timer_heap->heap[timer_heap->size - 1];
-    timer_heap->heap[0]->heap_index = 0;
     timer_heap->size--;
-    // Sift the heap downwards to place the element where it belongs
-    gc_timer_heap_sift_down(timer_heap, timer_heap->heap[0]);
+    if (timer_heap->size > 0) {
+        // Remove the timer from the heap
+        // Place the last element in the heap at the root
+        timer_heap->heap[0] = timer_heap->heap[timer_heap->size];
+        timer_heap->heap[0]->heap_index = 0;
+        // Sift the heap downwards to place the element where it belongs
+        gc_timer_heap_sift_down(timer_heap, timer_heap->heap[0]);
+    }
+    t->heap_index = -1;
     return t;
 }
 
@@ -114,13 +117,21 @@ gc_timer* gc_timer_heap_peek(gc_timer_heap* timer_heap) {
 }
 
 void gc_timer_heap_remove(gc_timer_heap* timer_heap, gc_timer* t) {
+    size_t index = t->heap_index;
+    if (index == SIZE_MAX) return;
     // Remove the timer from the heap
-    // Place the last element in the heap at the timer's position
-    timer_heap->heap[t->heap_index] = timer_heap->heap[timer_heap->size - 1];
-    timer_heap->heap[t->heap_index]->heap_index = t->heap_index;
+    t->heap_index = -1;
     timer_heap->size--;
-    // Sift the heap downwards to place the element where it belongs
-    gc_timer_heap_sift_down(timer_heap, timer_heap->heap[t->heap_index]);
+    // Return if we removed the last element
+    if (index == timer_heap->size) return;
+
+    gc_timer* last = timer_heap->heap[timer_heap->size];
+    // Place the last element in the heap at the timer's position
+    timer_heap->heap[index] = last;
+    last->heap_index = index;
+    // Sift the heap to place the element where it belongs
+    gc_timer_heap_sift_up(timer_heap, last);
+    gc_timer_heap_sift_down(timer_heap, last);
 }
 
 void gc_timer_heap_sift_up(gc_timer_heap* timer_heap, gc_timer* t) {

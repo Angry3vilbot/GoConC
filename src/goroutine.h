@@ -32,7 +32,7 @@ typedef enum {
 } gc_state;
 
 typedef struct gc_goroutine {
-    gc_context ctx;
+    gc_cpu_context ctx;
     gc_state status;
     gc_stack stk;
     entry_function func;

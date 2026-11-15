@@ -24,8 +24,8 @@
 
 static _Alignas(16) char test_stack[64 * 1024];
 
-static gc_context main_ctx;
-static gc_context test_ctx;
+static gc_cpu_context main_ctx;
+static gc_cpu_context test_ctx;
 
 void test_func(void* p) {
     int *someArg = p;

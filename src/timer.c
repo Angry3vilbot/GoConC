@@ -67,7 +67,37 @@ void gc_timer_channel_callback(gc_timer* t, gc_mono_time now) {
     // Otherwise, it's a regular timer
     t->state = GC_TIMER_FIRED;
     // If it's owned by gc_after, free just the timer, so the user can still read from the channel
-    if (t->heap_allocated) free(t);
+    if (t->is_after_timer) free(t);
+}
+
+/// AfterFunc callback function
+/// @details Creates a goroutine that runs the provided function with a given argument
+/// @param t The <code>gc_after_function</code>'s timer
+void gc_timer_after_function_callback(gc_timer* t, gc_mono_time now) {
+    gc_go(t->user_function, t->user_arg);
+}
+
+/// Context's own private AfterFunc callback function
+/// @details Runs the provided cancel function
+/// @param t The <code>gc_context_after_function</code>'s timer
+void gc_timer_context_callback(gc_timer* t, gc_mono_time now) {
+    t->user_function(t->user_arg);
+}
+
+gc_timer* gc_timer_alloc(gc_mono_time when, timer_function function) {
+    gc_timer* timer = calloc(1, sizeof(*timer));
+    if (timer == NULL) {
+        return nullptr;
+    }
+    timer->when = when;
+    timer->function = function;
+    timer->heap_index = -1;
+    return timer;
+}
+
+bool gc_timer_arm(gc_timer* timer) {
+    gc_scheduler* scheduler = gc_sched_get();
+    return gc_timer_heap_push(&scheduler->timer_heap, timer);
 }
 
 void gc_sleep(gc_duration duration) {
@@ -80,7 +110,6 @@ void gc_sleep(gc_duration duration) {
     timer.function = gc_timer_sleep_callback;
     timer.when = gc_monotonic_time_add(gc_monotonic_time_now(), duration);
     timer.heap_index = -1;
-    timer.heap_allocated = false;
     // Push the timer onto the heap
     bool success = gc_timer_heap_push(&scheduler->timer_heap, &timer);
     if (!success) {
@@ -92,17 +121,68 @@ void gc_sleep(gc_duration duration) {
 }
 
 gc_channel* gc_after(gc_duration duration) {
-    gc_timer* timer = gc_timer_make(duration);
+    // Allocate the Done channel
+    gc_channel *channel = gc_make(sizeof(gc_wall_time), 1);
+    if (channel == NULL) {
+        return nullptr;
+    }
+    // Create the timer
+    gc_timer* timer = gc_timer_alloc(
+        gc_monotonic_time_add(gc_monotonic_time_now(), duration),
+        gc_timer_channel_callback);
+    if (timer == NULL) {
+        gc_free(channel);
+        return nullptr;
+    }
+    timer->target.channel = channel;
+    // Flag it for cleanup
+    timer->is_after_timer = true;
+    // Push it onto the heap
+    if (!gc_timer_arm(timer)) {
+        gc_free(timer->target.channel);
+        free(timer);
+        return nullptr;
+    }
 
     return timer->target.channel;
 }
 
-gc_timer* gc_timer_make(gc_duration duration) {
-    // Create the timer
-    gc_timer* timer = calloc(1, sizeof(*timer));
-    if (timer == NULL) {
+gc_timer* gc_after_function(gc_duration duration, entry_function function, void* arg) {
+    gc_timer* timer = gc_timer_alloc(
+        gc_monotonic_time_add(gc_monotonic_time_now(), duration),
+        gc_timer_after_function_callback);
+    // Set the arguments for use by the callback
+    timer->user_function = function;
+    timer->user_arg = arg;
+    timer->is_after_timer = true;
+    // Push it onto the heap
+    if (!gc_timer_arm(timer)) {
+        free(timer);
         return nullptr;
     }
+
+    return timer;
+}
+
+gc_timer* gc_context_after(gc_mono_time when, entry_function function, void* arg) {
+    gc_timer* timer = gc_timer_alloc(when, gc_timer_context_callback);
+    // Set the arguments for use by the callback
+    timer->user_function = function;
+    timer->user_arg = arg;
+    timer->is_after_timer = true;
+    // Push it onto the heap
+    if (!gc_timer_arm(timer)) {
+        free(timer);
+        return nullptr;
+    }
+
+    return timer;
+}
+
+gc_timer* gc_timer_make_at(gc_mono_time when, timer_function function) {
+    // Create the timer
+    gc_timer* timer = gc_timer_alloc(when, function);
+    if (timer == NULL) return nullptr;
     // Create the internal channel
     gc_channel* chan = gc_make(sizeof(gc_wall_time), 1);
     if (chan == NULL) {
@@ -110,14 +190,15 @@ gc_timer* gc_timer_make(gc_duration duration) {
         return nullptr;
     }
     timer->target.channel = chan;
-    timer->when = gc_monotonic_time_add(gc_monotonic_time_now(), duration);
-    timer->function = gc_timer_channel_callback;
     timer->period = 0;
-    timer->heap_index = -1;
-    timer->heap_allocated = true;
+
+    return timer;
+}
+gc_timer* gc_timer_make(gc_duration duration) {
+    gc_timer* timer = gc_timer_make_at(gc_monotonic_time_add(gc_monotonic_time_now(), duration),
+        gc_timer_channel_callback);
     // Push it onto the heap
-    gc_scheduler* scheduler = gc_sched_get();
-    if (!gc_timer_heap_push(&scheduler->timer_heap, timer)) {
+    if (!gc_timer_arm(timer)) {
         gc_free(timer->target.channel);
         free(timer);
         return nullptr;
