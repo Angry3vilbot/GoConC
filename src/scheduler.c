@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "poller.h"
 #include "sanitizer_p.h"
 #include "scheduler_p.h"
 
@@ -72,7 +73,12 @@ void gc_run() {
                 timer->function(timer, now);
             }
         }
-
+        // If the poller is initialized, poll every GC_SCHEDULER_POLL_INTERVAL
+        if (gc_poller_inited()
+            && current->io_waiters > 0
+            && current->tick % GC_SCHEDULER_POLL_INTERVAL == 0) {
+                gc_poller_poll(0);
+        }
         // Check if the queue has any goroutines
         if (!gc_run_queue_isEmpty(&current->run_queue)) {
             // Dequeue a goroutine from the queue
@@ -80,6 +86,8 @@ void gc_run() {
             // Set the goroutine as running
             goroutine->status = GC_STATE_RUNNING;
             current->current = goroutine;
+            // Increment the iteration counter
+            current->tick++;
             // Switch the context to the goroutine
             gc_switch(&current->context, &goroutine->ctx,
                 &current->asan_fake_stack, goroutine->stk.stack_base, goroutine->stk.stack_size);
@@ -97,6 +105,19 @@ void gc_run() {
             }
         }
         else {
+            // If we have waiters in the poller, poll instead of nanosleep
+            if (current->io_waiters > 0) {
+                // If we have a timer, poll until the earliest one, otherwise poll forever
+                gc_duration timeout = -1; // Poll forever
+                if (current->timer_heap.size > 0) {
+                    gc_duration new_timeout = current->timer_heap.heap[0]->when - gc_monotonic_time_now();
+                    timeout = new_timeout > 0 ? new_timeout : 0;
+                }
+
+                gc_poller_poll(timeout);
+                // Restart the loop after waking up
+                continue;
+            }
             // If the timer heap is not empty, sleep until the first deadline
             if (current->timer_heap.size > 0) {
                 gc_mono_time when = current->timer_heap.heap[0]->when;

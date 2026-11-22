@@ -26,6 +26,8 @@
 #include "context.h"
 #include "timer_p.h"
 
+const static uint32_t GC_SCHEDULER_POLL_INTERVAL = 61;
+
 typedef struct {
     gc_goroutine *current;
     gc_cpu_context context;
@@ -34,6 +36,10 @@ typedef struct {
     gc_run_queue run_queue;
     // Timers
     gc_timer_heap timer_heap;
+    // Amount of goroutines waiting for I/O in the netpoller
+    int io_waiters;
+    // Scheduler iteration counter, used for polling
+    uint32_t tick;
     // ASan fiber parameters
     void  *asan_fake_stack;
     const void  *stack_bottom;

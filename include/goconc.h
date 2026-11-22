@@ -31,5 +31,6 @@
 #include "goconc/timer.h"
 #include "goconc/datetime.h"
 #include "goconc/gc_context.h"
+#include "goconc/fd.h"
 
 #endif // GOCONC_LIBRARY_H

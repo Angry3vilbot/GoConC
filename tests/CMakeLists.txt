@@ -21,6 +21,7 @@ endforeach ()
 add_subdirectory(test_select_statement)
 add_subdirectory(test_timers)
 add_subdirectory(test_gc_context)
+add_subdirectory(test_netpoller)
 
 add_executable(test_stack test_stack.c)
 add_executable(test_stack_edge_cases test_stack_edge_cases.c)
