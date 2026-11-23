@@ -4,6 +4,7 @@ set(
         dining_philosophers
         worker_pools
         rate_limiting
+        tcp_server
 )
 
 foreach (example IN LISTS examples)

@@ -6,3 +6,4 @@ Here you can find example programs that use GoConC.
 - dining_philosophers.c - An implementation of the Dining Philosophers Problem by limiting the number of philosophers dining at the table to n - 1, done using channels.
 - worker_pools.c - An implementation of the [Worker Pools](https://gobyexample.com/worker-pools) example from [Go by Example](https://github.com/mmcgrana/gobyexample#license).
 - rate_limiting.c - An implementation of the [Rate Limiting](https://gobyexample.com/rate-limiting) example from [Go by Example](https://github.com/mmcgrana/gobyexample#license).
+- tcp_server.c - An implementation of the [TCP Server](https://gobyexample.com/tcp-server) example from [Go by Example](https://github.com/mmcgrana/gobyexample#license).
