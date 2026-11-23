@@ -2,6 +2,7 @@ set(
         tests
         descriptors_and_init
         pipe
+        tcp
 )
 
 foreach (name IN LISTS tests)

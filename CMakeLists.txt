@@ -22,6 +22,14 @@ elseif(_proc MATCHES "^(aarch64|arm64)$")
 else()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}/${_proc}")
 endif()
+# Pick the poller implementation
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    set(GOCONC_POLLER_SRC src/poller_epoll.c)
+elseif(APPLE OR CMAKE_SYSTEM_NAME MATCHES "BSD")
+    message(FATAL_ERROR "No poller backend for this platform")
+else()
+    message(FATAL_ERROR "No poller backend for this platform")
+endif()
 
 if(GOCONC_SANITIZE)
     add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
@@ -45,8 +53,9 @@ add_library(GoConC STATIC
         src/gc_context.c
         src/fd.c
         src/poll.c
-        src/poller_epoll.c
-        ${GOCONC_ARCH_SRC})
+        src/net.c
+        ${GOCONC_ARCH_SRC}
+        ${GOCONC_POLLER_SRC})
 add_library(GoConC::GoConC ALIAS GoConC)
 target_compile_features(GoConC PUBLIC c_std_23)
 

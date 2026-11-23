@@ -125,13 +125,13 @@ ssize_t gc_fd_read(gc_fd *fd, void *buffer, size_t count) {
         if (fd->poller_descriptor->closing) {
             // Set the error number to Bad File Descriptor
             errno = EBADF;
-            fd->active_ref_count--;
+            gc_fd_leave(fd);
             return -1;
         }
         ssize_t retv = read(fd->file_descriptor, buffer, count);
         // On success, return the number of bytes read
         if (retv >= 0) {
-            fd->active_ref_count--;
+            gc_fd_leave(fd);
             return retv;
         }
         // Otherwise, check the error number
@@ -149,14 +149,14 @@ ssize_t gc_fd_read(gc_fd *fd, void *buffer, size_t count) {
                     // Set the error number
                     // TODO: After timeouts, set to ETIMEDOUT on that
                     errno = EBADF;
-                    fd->active_ref_count--;
+                    gc_fd_leave(fd);
                     return -1;
                 }
                 // Now, try again
                 continue;
             default:
                 errno = err;
-                fd->active_ref_count--;
+                gc_fd_leave(fd);
                 return -1;
         }
     }

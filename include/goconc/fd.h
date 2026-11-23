@@ -26,9 +26,37 @@
 /// File Descriptor
 typedef struct gc_fd gc_fd;
 
+/// Wrap a file descriptor
+/// @details Stores the file descriptor inside a newly allocated gc_fd, together with a new
+/// @link gc_polldesc @endlink. Initializes the poller if it isn't already initialized.
+/// @note Sets O_NONBLOCK on the file descriptor if not already set.
+/// @note Check the error number using errno if you need the reason for failure.
+/// @param fd The file descriptor to wrap
+/// @return The pointer to the allocated @link gc_fd @endlink, nullptr on failure
 gc_fd* gc_fd_wrap(int fd);
+
+/// Read the specified number of bytes into the given buffer from a file descriptor.
+/// @note Check the error number using errno if you need the reason for failure.
+/// @param fd The @link gc_fd @endlink to read on
+/// @param buffer The buffer in which to store the read bytes
+/// @param count The number of bytes to read
+/// @return The number of bytes read, -1 on failure
 ssize_t gc_fd_read(gc_fd *fd, void *buffer, size_t count);
+
+/// Write the specified number of bytes from a given buffer into a file descriptor.
+/// @note Check the error number using errno if you need the reason for failure.
+/// @param fd The @link gc_fd @endlink to write on
+/// @param buffer The buffer from which to write
+/// @param count The number of bytes to write
+/// @return The number of bytes written, -1 on failure
 ssize_t gc_fd_write(gc_fd *fd, const void *buffer, size_t count);
+
+/// Close a file descriptor
+/// @details Wakes any goroutines that are waiting to read/write. The last user of the file descriptor
+/// will then free the memory allocated to it and the inner @link gc_polldesc @endlink
+/// @note Check the error number using errno if you need the reason for failure.
+/// @param fd The @link gc_fd @endlink to close
+/// @return 0 on success, -1 on failure
 int gc_fd_close(gc_fd *fd);
 
 #endif //GOCONC_FD_H
